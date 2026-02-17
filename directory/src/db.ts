@@ -27,6 +27,9 @@ export async function initDb(instance?: Sequelize): Promise<void> {
   initAgentModel(sequelize);
   initSnapshotModel(sequelize);
 
-  await sequelize.sync({ force: !!instance, alter: !instance && config.nodeEnv === "development" });
+  await sequelize.sync({
+    force: !!instance,
+    alter: !instance && config.nodeEnv === "development",
+  });
   console.log("[db] Connected and synced");
 }

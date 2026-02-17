@@ -79,9 +79,7 @@ describe("envelope", () => {
   });
 
   it("throws on missing required fields", () => {
-    expect(() =>
-      decodeEnvelope(JSON.stringify({ reef: "0.1.0" })),
-    ).toThrow();
+    expect(() => decodeEnvelope(JSON.stringify({ reef: "0.1.0" }))).toThrow();
   });
 
   it("throws on invalid message type", () => {

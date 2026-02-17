@@ -25,29 +25,20 @@ export function loadContacts(configDir?: string): Contact[] {
 /**
  * Save the full contacts list to the config directory.
  */
-export function saveContacts(
-  contacts: Contact[],
-  configDir?: string,
-): void {
+export function saveContacts(contacts: Contact[], configDir?: string): void {
   const dir = configDir || getConfigDir();
 
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  fs.writeFileSync(
-    contactsPath(dir),
-    JSON.stringify(contacts, null, 2),
-  );
+  fs.writeFileSync(contactsPath(dir), JSON.stringify(contacts, null, 2));
 }
 
 /**
  * Add a contact. If the address already exists, update it.
  */
-export function addContact(
-  contact: Contact,
-  configDir?: string,
-): void {
+export function addContact(contact: Contact, configDir?: string): void {
   const contacts = loadContacts(configDir);
   const existing = contacts.findIndex(
     (c) => c.address.toLowerCase() === contact.address.toLowerCase(),
@@ -65,10 +56,7 @@ export function addContact(
 /**
  * Remove a contact by address.
  */
-export function removeContact(
-  address: string,
-  configDir?: string,
-): boolean {
+export function removeContact(address: string, configDir?: string): boolean {
   const contacts = loadContacts(configDir);
   const filtered = contacts.filter(
     (c) => c.address.toLowerCase() !== address.toLowerCase(),
@@ -85,10 +73,7 @@ export function removeContact(
 /**
  * Check if an address is in the contacts list.
  */
-export function isContact(
-  address: string,
-  configDir?: string,
-): boolean {
+export function isContact(address: string, configDir?: string): boolean {
   const contacts = loadContacts(configDir);
   return contacts.some(
     (c) => c.address.toLowerCase() === address.toLowerCase(),

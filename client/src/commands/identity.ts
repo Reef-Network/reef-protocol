@@ -1,4 +1,9 @@
-import { getOrCreateIdentity, loadIdentity, generateIdentity, getConfigDir } from "../identity.js";
+import {
+  getOrCreateIdentity,
+  loadIdentity,
+  generateIdentity,
+  getConfigDir,
+} from "../identity.js";
 
 export function identityCommand(options: { generate?: boolean }): void {
   const configDir = getConfigDir();

@@ -7,8 +7,7 @@ interface SearchOptions {
 }
 
 export async function searchCommand(options: SearchOptions): Promise<void> {
-  const directoryUrl =
-    process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
+  const directoryUrl = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
 
   const params = new URLSearchParams();
   if (options.query) params.set("q", options.query);

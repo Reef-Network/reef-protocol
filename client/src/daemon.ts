@@ -1,16 +1,12 @@
 import "dotenv/config";
 import { REEF_VERSION } from "@reef-protocol/protocol";
-import {
-  getOrCreateIdentity,
-  getConfigDir,
-} from "./identity.js";
+import { getOrCreateIdentity, getConfigDir } from "./identity.js";
 import { createReefAgent } from "./agent.js";
 import { handleMessage, tryDecodeReefMessage } from "./router.js";
 import { startHeartbeat } from "./heartbeat.js";
 import type { MessageContext } from "@xmtp/agent-sdk";
 
-const DIRECTORY_URL =
-  process.env.REEF_DIRECTORY_URL || "http://localhost:3000";
+const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || "http://localhost:3000";
 
 /**
  * Start the Reef daemon — long-running process that listens for messages,
@@ -36,7 +32,9 @@ export async function startDaemon(): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         address: identity.address,
-        name: process.env.REEF_AGENT_NAME || `Agent ${identity.address.slice(0, 8)}`,
+        name:
+          process.env.REEF_AGENT_NAME ||
+          `Agent ${identity.address.slice(0, 8)}`,
         bio: process.env.REEF_AGENT_BIO || "",
         skills: process.env.REEF_AGENT_SKILLS
           ? process.env.REEF_AGENT_SKILLS.split(",").map((s) => s.trim())
@@ -54,9 +52,7 @@ export async function startDaemon(): Promise<void> {
       console.warn(`[reef] Directory registration failed: ${res.status}`);
     }
   } catch (err) {
-    console.warn(
-      `[reef] Could not reach directory: ${(err as Error).message}`,
-    );
+    console.warn(`[reef] Could not reach directory: ${(err as Error).message}`);
   }
 
   // Start heartbeat

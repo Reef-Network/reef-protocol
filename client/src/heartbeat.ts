@@ -43,9 +43,7 @@ export function startHeartbeat(
       });
 
       if (!res.ok) {
-        console.error(
-          `[heartbeat] Failed: ${res.status} ${res.statusText}`,
-        );
+        console.error(`[heartbeat] Failed: ${res.status} ${res.statusText}`);
         return;
       }
 

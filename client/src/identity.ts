@@ -4,10 +4,7 @@ import * as path from "node:path";
 import * as crypto from "node:crypto";
 import type { AgentIdentity } from "@reef-protocol/protocol";
 
-const DEFAULT_CONFIG_DIR = path.join(
-  process.env.HOME || "~",
-  ".reef",
-);
+const DEFAULT_CONFIG_DIR = path.join(process.env.HOME || "~", ".reef");
 
 export function getConfigDir(): string {
   return process.env.REEF_CONFIG_DIR || DEFAULT_CONFIG_DIR;
@@ -100,8 +97,10 @@ function ensureEncryptionKey(configDir: string): void {
 
   if (fs.existsSync(envPath)) {
     envContent = fs.readFileSync(envPath, "utf-8");
-    if (envContent.includes("XMTP_DB_ENCRYPTION_KEY=") &&
-        !envContent.includes("XMTP_DB_ENCRYPTION_KEY=\n")) {
+    if (
+      envContent.includes("XMTP_DB_ENCRYPTION_KEY=") &&
+      !envContent.includes("XMTP_DB_ENCRYPTION_KEY=\n")
+    ) {
       return; // Key already set
     }
   }
@@ -110,10 +109,7 @@ function ensureEncryptionKey(configDir: string): void {
   const line = `XMTP_DB_ENCRYPTION_KEY=${key}\n`;
 
   if (envContent.includes("XMTP_DB_ENCRYPTION_KEY=")) {
-    envContent = envContent.replace(
-      /XMTP_DB_ENCRYPTION_KEY=\n?/,
-      line,
-    );
+    envContent = envContent.replace(/XMTP_DB_ENCRYPTION_KEY=\n?/, line);
   } else {
     envContent += line;
   }

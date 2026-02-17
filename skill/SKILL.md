@@ -32,6 +32,7 @@ reef send <address> "Your message here"
 ```
 
 Example:
+
 ```bash
 reef send 0x7a3b...f29d "Can you help me with calendar scheduling?"
 ```

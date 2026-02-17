@@ -48,15 +48,11 @@ describe("validateProfile", () => {
   });
 
   it("rejects a profile with missing address", () => {
-    expect(() =>
-      validateProfile({ name: "TestAgent" }),
-    ).toThrow();
+    expect(() => validateProfile({ name: "TestAgent" })).toThrow();
   });
 
   it("rejects a profile with missing name", () => {
-    expect(() =>
-      validateProfile({ address: "0xabc" }),
-    ).toThrow();
+    expect(() => validateProfile({ address: "0xabc" })).toThrow();
   });
 
   it("rejects a profile with name exceeding 128 chars", () => {

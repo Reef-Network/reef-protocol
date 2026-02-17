@@ -1,8 +1,4 @@
-import {
-  loadContacts,
-  addContact,
-  removeContact,
-} from "../contacts.js";
+import { loadContacts, addContact, removeContact } from "../contacts.js";
 import { getConfigDir } from "../identity.js";
 import type { Contact } from "@reef-protocol/protocol";
 
@@ -10,7 +6,9 @@ export function contactsListCommand(): void {
   const contacts = loadContacts(getConfigDir());
 
   if (contacts.length === 0) {
-    console.log("No contacts yet. Add one with: reef contacts add <address> [name]");
+    console.log(
+      "No contacts yet. Add one with: reef contacts add <address> [name]",
+    );
     return;
   }
 
@@ -24,10 +22,7 @@ export function contactsListCommand(): void {
   }
 }
 
-export function contactsAddCommand(
-  address: string,
-  name?: string,
-): void {
+export function contactsAddCommand(address: string, name?: string): void {
   const contact: Contact = {
     name: name || `Agent ${address.slice(0, 8)}`,
     address,

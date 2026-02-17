@@ -5,10 +5,7 @@ import {
   heartbeatPayloadSchema,
 } from "@reef-protocol/protocol";
 import { Agent } from "../models/Agent.js";
-import {
-  registrationLimiter,
-  searchLimiter,
-} from "../middleware/rateLimit.js";
+import { registrationLimiter, searchLimiter } from "../middleware/rateLimit.js";
 
 export const agentsRouter = Router();
 

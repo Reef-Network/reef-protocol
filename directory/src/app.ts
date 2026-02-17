@@ -21,22 +21,15 @@ app.get("/health", (_req, res) => {
 });
 
 // Global error handler
-app.use(
-  (
-    err: Error,
-    _req: Request,
-    res: Response,
-    _next: NextFunction,
-  ) => {
-    if (err instanceof ZodError) {
-      res.status(400).json({
-        error: "Validation error",
-        details: err.errors,
-      });
-      return;
-    }
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  if (err instanceof ZodError) {
+    res.status(400).json({
+      error: "Validation error",
+      details: err.errors,
+    });
+    return;
+  }
 
-    console.error("[error]", err.message);
-    res.status(500).json({ error: "Internal server error" });
-  },
-);
+  console.error("[error]", err.message);
+  res.status(500).json({ error: "Internal server error" });
+});

@@ -9,14 +9,11 @@ interface RegisterOptions {
   skills?: string;
 }
 
-export async function registerCommand(
-  options: RegisterOptions,
-): Promise<void> {
+export async function registerCommand(options: RegisterOptions): Promise<void> {
   const configDir = getConfigDir();
   const identity = getOrCreateIdentity(configDir);
 
-  const directoryUrl =
-    process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
+  const directoryUrl = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
 
   const body = {
     address: identity.address,
@@ -39,9 +36,7 @@ export async function registerCommand(
     });
 
     if (!res.ok) {
-      console.error(
-        `Registration failed: ${res.status} ${res.statusText}`,
-      );
+      console.error(`Registration failed: ${res.status} ${res.statusText}`);
       return;
     }
 
@@ -51,8 +46,6 @@ export async function registerCommand(
     console.log(`  Address:      ${identity.address}`);
     console.log(`  Agent number: #${data.agentNumber}`);
   } catch (err) {
-    console.error(
-      `Could not reach directory: ${(err as Error).message}`,
-    );
+    console.error(`Could not reach directory: ${(err as Error).message}`);
   }
 }

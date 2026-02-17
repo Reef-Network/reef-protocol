@@ -61,8 +61,7 @@ export async function handleMessage(
         latencyMs?: number;
       };
       if (pongPayload?.originalTs) {
-        const latency =
-          Date.now() - new Date(pongPayload.originalTs).getTime();
+        const latency = Date.now() - new Date(pongPayload.originalTs).getTime();
         console.log(`[pong] from ${from} — ${latency}ms round-trip`);
       } else {
         console.log(`[pong] from ${from}`);
@@ -101,9 +100,7 @@ export async function handleMessage(
  * Try to decode a raw message string as a Reef envelope.
  * Returns null if it's not a valid Reef message.
  */
-export function tryDecodeReefMessage(
-  raw: string,
-): ReefEnvelope | null {
+export function tryDecodeReefMessage(raw: string): ReefEnvelope | null {
   try {
     return decodeEnvelope(raw);
   } catch {

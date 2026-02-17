@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { newDb } from "pg-mem";
 import { Sequelize } from "sequelize";
 import supertest from "supertest";
@@ -42,15 +42,13 @@ describe("health", () => {
 
 describe("POST /agents/register", () => {
   it("registers a new agent", async () => {
-    const res = await request
-      .post("/agents/register")
-      .send({
-        address: "0xAgent001",
-        name: "Test Agent",
-        bio: "A test agent",
-        skills: ["testing", "validation"],
-        reefVersion: "0.1.0",
-      });
+    const res = await request.post("/agents/register").send({
+      address: "0xAgent001",
+      name: "Test Agent",
+      bio: "A test agent",
+      skills: ["testing", "validation"],
+      reefVersion: "0.1.0",
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -153,9 +151,7 @@ describe("POST /agents/heartbeat", () => {
   });
 
   it("rejects missing address", async () => {
-    const res = await request
-      .post("/agents/heartbeat")
-      .send({});
+    const res = await request.post("/agents/heartbeat").send({});
 
     expect(res.status).toBe(400);
   });

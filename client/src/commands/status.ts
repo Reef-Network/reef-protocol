@@ -23,8 +23,7 @@ export async function statusCommand(): Promise<void> {
   console.log(`\nContacts: ${contacts.length}`);
 
   // Fetch network stats from directory
-  const directoryUrl =
-    process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
+  const directoryUrl = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
 
   try {
     const res = await fetch(`${directoryUrl}/stats`);
@@ -38,9 +37,7 @@ export async function statusCommand(): Promise<void> {
       console.log(`  Total agents:  ${stats.totalAgents}`);
       console.log(`  Online agents: ${stats.onlineAgents}`);
       if (stats.topSkills.length > 0) {
-        console.log(
-          `  Top skills:    ${stats.topSkills.join(", ")}`,
-        );
+        console.log(`  Top skills:    ${stats.topSkills.join(", ")}`);
       }
     } else {
       console.log(`\nNetwork: Could not reach directory`);

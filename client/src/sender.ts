@@ -1,8 +1,5 @@
 import type { Agent } from "@xmtp/agent-sdk";
-import {
-  encodeEnvelope,
-  type MessageType,
-} from "@reef-protocol/protocol";
+import { encodeEnvelope, type MessageType } from "@reef-protocol/protocol";
 
 type HexAddress = `0x${string}`;
 
