@@ -11,6 +11,11 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reef"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
 
   directory:
     build:
@@ -23,7 +28,8 @@ services:
       PORT: "3000"
       NODE_ENV: production
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
 volumes:
   pgdata:
