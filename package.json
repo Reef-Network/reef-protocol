@@ -13,11 +13,18 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "dev:directory": "npm run dev -w directory"
+    "dev:directory": "npm run dev -w directory",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,js,json,yml,yaml}": "prettier --write",
+    "*.{ts,js}": "eslint --fix"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
