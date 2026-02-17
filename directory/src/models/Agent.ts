@@ -41,7 +41,7 @@ export function initAgentModel(sequelize: Sequelize): void {
         allowNull: true,
       },
       skills: {
-        type: DataTypes.JSON,
+        type: DataTypes.JSONB,
         allowNull: false,
         defaultValue: [],
       },
