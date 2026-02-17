@@ -1,4 +1,5 @@
 import { DataTypes, Model, type Sequelize } from "sequelize";
+import type { AgentCard } from "@a2a-js/sdk";
 
 export interface AgentAttributes {
   address: string;
@@ -9,6 +10,7 @@ export interface AgentAttributes {
   version: string | null;
   reef_version: string | null;
   last_heartbeat: Date | null;
+  agent_card: AgentCard | null;
 }
 
 export class Agent extends Model<AgentAttributes> {
@@ -20,6 +22,7 @@ export class Agent extends Model<AgentAttributes> {
   declare version: string | null;
   declare reef_version: string | null;
   declare last_heartbeat: Date | null;
+  declare agent_card: AgentCard | null;
   declare readonly created_at: Date;
   declare readonly updated_at: Date;
 }
@@ -61,6 +64,11 @@ export function initAgentModel(sequelize: Sequelize): void {
       last_heartbeat: {
         type: DataTypes.DATE,
         allowNull: true,
+      },
+      agent_card: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+        defaultValue: null,
       },
     },
     {

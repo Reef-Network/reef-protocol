@@ -1,58 +1,38 @@
-/** All Reef Protocol types and interfaces */
+/** Reef Protocol types — re-exports A2A types + Reef-specific types */
 
-export const REEF_VERSION = "0.1.0";
+import type { AgentCard } from "@a2a-js/sdk";
 
-/** Supported message types */
-export type MessageType =
-  | "text"
-  | "ping"
-  | "pong"
-  | "profile"
-  | "skill_request"
-  | "skill_response";
+export const REEF_VERSION = "0.2.0";
+export const A2A_PROTOCOL_VERSION = "0.3.0";
 
-/** The outer JSON envelope wrapping all Reef messages */
-export interface ReefEnvelope {
-  reef: string;
-  type: MessageType;
-  from: string;
-  payload: unknown;
-  ts: string;
-}
+// Re-export A2A types from @a2a-js/sdk
+export type {
+  AgentCard,
+  AgentSkill,
+  AgentCapabilities,
+  Task,
+  TaskState,
+  TaskStatus,
+  Message,
+  Part,
+  TextPart,
+  FilePart,
+  DataPart,
+  Artifact,
+  SendMessageRequest,
+  GetTaskRequest,
+  CancelTaskRequest,
+  JSONRPCRequest,
+  JSONRPCResponse,
+  JSONRPCErrorResponse,
+  A2ARequest,
+  A2AError,
+  MessageSendParams,
+  TaskStatusUpdateEvent,
+  TaskArtifactUpdateEvent,
+} from "@a2a-js/sdk";
 
-/** Text message payload */
-export interface TextPayload {
-  text: string;
-}
-
-/** Pong response payload */
-export interface PongPayload {
-  originalTs: string;
-  latencyMs?: number;
-}
-
-/** Agent profile payload (sent peer-to-peer) */
-export interface ProfilePayload {
-  name: string;
-  bio?: string;
-  skills?: string[];
-  availability?: "online" | "offline";
-}
-
-/** Skill request payload */
-export interface SkillRequestPayload {
-  skill: string;
-  input: Record<string, unknown>;
-  requestId: string;
-}
-
-/** Skill response payload */
-export interface SkillResponsePayload {
-  requestId: string;
-  output: Record<string, unknown>;
-  success: boolean;
-  error?: string;
-}
+// --- Reef-specific types (unchanged from v0.1) ---
 
 /** Agent identity (local keypair info) */
 export interface AgentIdentity {
@@ -61,19 +41,6 @@ export interface AgentIdentity {
   publicKey: string;
   createdAt: string;
   xmtpEnv: string;
-}
-
-/** Agent profile as stored in the directory */
-export interface AgentProfile {
-  address: string;
-  name: string;
-  bio?: string;
-  skills?: string[];
-  availability: "online" | "offline";
-  version?: string;
-  reefVersion?: string;
-  registeredAt?: string;
-  lastHeartbeat?: string;
 }
 
 /** Contact list entry */
@@ -102,14 +69,12 @@ export interface HeartbeatResponse {
   };
 }
 
-/** Directory registration request body */
+// --- Updated Reef types for A2A ---
+
+/** Directory registration request body (v0.2 — includes full AgentCard) */
 export interface RegisterPayload {
   address: string;
-  name: string;
-  bio?: string;
-  skills?: string[];
-  version?: string;
-  reefVersion?: string;
+  agentCard: AgentCard;
 }
 
 /** Directory registration response */
@@ -118,9 +83,21 @@ export interface RegisterResponse {
   agentNumber: number;
 }
 
-/** Directory search response */
+/** Directory search response (v0.2 — includes AgentCard per agent) */
 export interface SearchResponse {
-  agents: AgentProfile[];
+  agents: AgentSearchResult[];
+}
+
+/** Single agent in search results */
+export interface AgentSearchResult {
+  address: string;
+  name: string;
+  bio: string | null;
+  skills: string[];
+  availability: "online" | "offline";
+  agentCard: AgentCard | null;
+  registeredAt?: string;
+  lastHeartbeat?: string;
 }
 
 /** Directory stats response */

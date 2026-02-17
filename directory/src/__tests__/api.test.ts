@@ -7,6 +7,29 @@ import { app } from "../app.js";
 
 let request: supertest.SuperTest<supertest.Test>;
 
+/** Helper to build a minimal AgentCard for testing */
+function makeAgentCard(overrides: Record<string, unknown> = {}) {
+  return {
+    name: "Test Agent",
+    description: "A test agent",
+    url: "xmtp://0xAgent001",
+    version: "0.2.0",
+    protocolVersion: "0.3.0",
+    skills: [
+      {
+        id: "testing",
+        name: "Testing",
+        description: "Run tests",
+        tags: ["testing", "validation"],
+      },
+    ],
+    capabilities: { streaming: false },
+    defaultInputModes: ["text/plain"],
+    defaultOutputModes: ["text/plain"],
+    ...overrides,
+  };
+}
+
 beforeAll(async () => {
   const pgMem = newDb();
 
@@ -41,13 +64,10 @@ describe("health", () => {
 });
 
 describe("POST /agents/register", () => {
-  it("registers a new agent", async () => {
+  it("registers a new agent with AgentCard", async () => {
     const res = await request.post("/agents/register").send({
       address: "0xAgent001",
-      name: "Test Agent",
-      bio: "A test agent",
-      skills: ["testing", "validation"],
-      reefVersion: "0.1.0",
+      agentCard: makeAgentCard(),
     });
 
     expect(res.status).toBe(200);
@@ -58,13 +78,15 @@ describe("POST /agents/register", () => {
   it("upserts an existing agent", async () => {
     await request.post("/agents/register").send({
       address: "0xAgent002",
-      name: "Original Name",
+      agentCard: makeAgentCard({ name: "Original Name" }),
     });
 
     const res = await request.post("/agents/register").send({
       address: "0xAgent002",
-      name: "Updated Name",
-      bio: "New bio",
+      agentCard: makeAgentCard({
+        name: "Updated Name",
+        description: "New bio",
+      }),
     });
 
     expect(res.status).toBe(200);
@@ -74,28 +96,31 @@ describe("POST /agents/register", () => {
   it("rejects missing address", async () => {
     const res = await request
       .post("/agents/register")
-      .send({ name: "No Address" });
+      .send({ agentCard: makeAgentCard() });
 
     expect(res.status).toBe(400);
   });
 
-  it("rejects missing name", async () => {
+  it("rejects missing agentCard", async () => {
     const res = await request
       .post("/agents/register")
-      .send({ address: "0xNoName" });
+      .send({ address: "0xNoCard" });
 
     expect(res.status).toBe(400);
   });
 });
 
 describe("GET /agents/:address", () => {
-  it("returns a registered agent", async () => {
+  it("returns a registered agent with agentCard", async () => {
     const res = await request.get("/agents/0xAgent001");
 
     expect(res.status).toBe(200);
     expect(res.body.name).toBe("Test Agent");
     expect(res.body.address).toBe("0xAgent001");
     expect(res.body.skills).toEqual(["testing", "validation"]);
+    expect(res.body.agentCard).toBeTruthy();
+    expect(res.body.agentCard.name).toBe("Test Agent");
+    expect(res.body.agentCard.protocolVersion).toBe("0.3.0");
   });
 
   it("returns 404 for unknown agent", async () => {
@@ -111,6 +136,14 @@ describe("GET /agents/search", () => {
     expect(res.status).toBe(200);
     expect(res.body.agents.length).toBeGreaterThan(0);
     expect(res.body.agents[0].name).toContain("Test");
+  });
+
+  it("includes agentCard in search results", async () => {
+    const res = await request.get("/agents/search?q=Test");
+
+    expect(res.status).toBe(200);
+    expect(res.body.agents[0].agentCard).toBeTruthy();
+    expect(res.body.agents[0].agentCard.url).toContain("xmtp://");
   });
 
   it("filters by online status", async () => {
@@ -171,7 +204,7 @@ describe("GET /stats", () => {
   it("includes skills from registered agents in live fallback", async () => {
     const res = await request.get("/stats");
 
-    // Agent001 registered with ["testing", "validation"]
+    // Agent001 registered with skills tags ["testing", "validation"]
     expect(res.body.topSkills).toContain("testing");
   });
 

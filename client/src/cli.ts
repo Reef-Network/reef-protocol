@@ -18,7 +18,7 @@ const program = new Command();
 
 program
   .name("reef")
-  .description("Reef Protocol — peer-to-peer encrypted agent messaging")
+  .description("Reef Protocol — A2A agent messaging over XMTP")
   .version(REEF_VERSION);
 
 // reef identity
@@ -33,7 +33,7 @@ program
 // reef send <address> <message>
 program
   .command("send")
-  .description("Send a text message to another agent")
+  .description("Send an A2A text message to another agent")
   .argument("<address>", "Recipient agent address")
   .argument("<message>", "Message text to send")
   .action(async (address: string, message: string) => {
@@ -83,7 +83,7 @@ program
 // reef register
 program
   .command("register")
-  .description("Register or update your profile with the directory")
+  .description("Register or update your Agent Card with the directory")
   .option("-n, --name <name>", "Agent display name")
   .option("-b, --bio <bio>", "Agent description")
   .option("--skills <skills>", "Comma-separated list of skills")
@@ -102,7 +102,7 @@ program
 // reef start
 program
   .command("start")
-  .description("Start the Reef daemon (long-running message listener)")
+  .description("Start the Reef daemon (long-running A2A message listener)")
   .action(async () => {
     await startDaemon();
   });

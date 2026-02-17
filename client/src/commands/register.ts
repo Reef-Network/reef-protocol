@@ -1,4 +1,4 @@
-import { REEF_VERSION } from "@reef-protocol/protocol";
+import { buildReefAgentCard, buildSkill } from "@reef-protocol/protocol";
 import { getOrCreateIdentity, getConfigDir } from "../identity.js";
 
 const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
@@ -15,17 +15,28 @@ export async function registerCommand(options: RegisterOptions): Promise<void> {
 
   const directoryUrl = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
 
+  const name =
+    options.name ||
+    process.env.REEF_AGENT_NAME ||
+    `Agent ${identity.address.slice(0, 8)}`;
+  const description = options.bio || process.env.REEF_AGENT_BIO || "";
+  const skillStrings = options.skills
+    ? options.skills.split(",").map((s) => s.trim())
+    : [];
+  const skills = skillStrings.map((s) =>
+    buildSkill(s.toLowerCase().replace(/\s+/g, "-"), s, s, [s]),
+  );
+
+  const agentCard = buildReefAgentCard(
+    identity.address,
+    name,
+    description,
+    skills,
+  );
+
   const body = {
     address: identity.address,
-    name:
-      options.name ||
-      process.env.REEF_AGENT_NAME ||
-      `Agent ${identity.address.slice(0, 8)}`,
-    bio: options.bio || process.env.REEF_AGENT_BIO || "",
-    skills: options.skills
-      ? options.skills.split(",").map((s) => s.trim())
-      : [],
-    reefVersion: REEF_VERSION,
+    agentCard,
   };
 
   try {
@@ -42,7 +53,7 @@ export async function registerCommand(options: RegisterOptions): Promise<void> {
 
     const data = (await res.json()) as { agentNumber: number };
     console.log(`Registered with directory!`);
-    console.log(`  Name:         ${body.name}`);
+    console.log(`  Name:         ${name}`);
     console.log(`  Address:      ${identity.address}`);
     console.log(`  Agent number: #${data.agentNumber}`);
   } catch (err) {

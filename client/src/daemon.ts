@@ -1,8 +1,10 @@
 import "dotenv/config";
-import { REEF_VERSION } from "@reef-protocol/protocol";
+import { buildReefAgentCard, buildSkill } from "@reef-protocol/protocol";
+import { InMemoryTaskStore } from "@a2a-js/sdk/server";
 import { getOrCreateIdentity, getConfigDir } from "./identity.js";
 import { createReefAgent } from "./agent.js";
-import { handleMessage, tryDecodeReefMessage } from "./router.js";
+import { handleA2AMessage } from "./handler.js";
+import { createDefaultLogicHandler } from "./logic.js";
 import { startHeartbeat } from "./heartbeat.js";
 import type { MessageContext } from "@xmtp/agent-sdk";
 
@@ -25,6 +27,24 @@ export async function startDaemon(): Promise<void> {
   const agent = await createReefAgent(configDir);
   console.log(`[reef] XMTP agent initialized`);
 
+  // Build AgentCard from env vars
+  const agentName =
+    process.env.REEF_AGENT_NAME || `Agent ${identity.address.slice(0, 8)}`;
+  const agentDescription = process.env.REEF_AGENT_BIO || "";
+  const skillStrings = process.env.REEF_AGENT_SKILLS
+    ? process.env.REEF_AGENT_SKILLS.split(",").map((s) => s.trim())
+    : [];
+  const skills = skillStrings.map((s) =>
+    buildSkill(s.toLowerCase().replace(/\s+/g, "-"), s, s, [s]),
+  );
+
+  const agentCard = buildReefAgentCard(
+    identity.address,
+    agentName,
+    agentDescription,
+    skills,
+  );
+
   // Register with directory
   try {
     const res = await fetch(`${DIRECTORY_URL}/agents/register`, {
@@ -32,14 +52,7 @@ export async function startDaemon(): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         address: identity.address,
-        name:
-          process.env.REEF_AGENT_NAME ||
-          `Agent ${identity.address.slice(0, 8)}`,
-        bio: process.env.REEF_AGENT_BIO || "",
-        skills: process.env.REEF_AGENT_SKILLS
-          ? process.env.REEF_AGENT_SKILLS.split(",").map((s) => s.trim())
-          : [],
-        reefVersion: REEF_VERSION,
+        agentCard,
       }),
     });
 
@@ -58,25 +71,25 @@ export async function startDaemon(): Promise<void> {
   // Start heartbeat
   const stopHeartbeat = startHeartbeat(DIRECTORY_URL, identity);
 
+  // Create task store and logic handler
+  const taskStore = new InMemoryTaskStore();
+  const logicHandler = createDefaultLogicHandler();
+
   // Listen for messages
   agent.on("text", async (ctx: MessageContext<string>) => {
     const content = ctx.message.content;
     if (typeof content !== "string") return;
 
-    const envelope = tryDecodeReefMessage(content);
-    if (envelope) {
-      // Skip messages from self
-      if (envelope.from === agent.address) return;
-      await handleMessage(envelope, agent, configDir);
-    } else {
-      // Non-reef text message
-      const sender = await ctx.getSenderAddress();
-      console.log(`[msg] (plain) ${sender}: ${content}`);
-    }
+    const sender = await ctx.getSenderAddress();
+    if (!sender) return;
+    // Skip messages from self
+    if (sender === agent.address) return;
+
+    await handleA2AMessage(content, sender, agent, taskStore, logicHandler);
   });
 
   await agent.start();
-  console.log(`[reef] Daemon running. Listening for messages...`);
+  console.log(`[reef] Daemon running. Listening for A2A messages...`);
 
   // Graceful shutdown
   const shutdown = async () => {

@@ -1,66 +1,134 @@
 import { z } from "zod";
 
-/** Valid message types */
-export const messageTypeSchema = z.enum([
-  "text",
-  "ping",
-  "pong",
-  "profile",
-  "skill_request",
-  "skill_response",
+// --- A2A Part schemas ---
+
+export const textPartSchema = z.object({
+  kind: z.literal("text"),
+  text: z.string(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export const filePartSchema = z.object({
+  kind: z.literal("file"),
+  file: z.union([
+    z.object({
+      bytes: z.string(),
+      mimeType: z.string().optional(),
+      name: z.string().optional(),
+    }),
+    z.object({
+      uri: z.string(),
+      mimeType: z.string().optional(),
+      name: z.string().optional(),
+    }),
+  ]),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export const dataPartSchema = z.object({
+  kind: z.literal("data"),
+  data: z.record(z.unknown()),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export const partSchema = z.discriminatedUnion("kind", [
+  textPartSchema,
+  filePartSchema,
+  dataPartSchema,
 ]);
 
-/** Reef envelope schema */
-export const envelopeSchema = z.object({
-  reef: z.string(),
-  type: messageTypeSchema,
-  from: z.string().min(1),
-  payload: z.unknown(),
-  ts: z.string(),
+// --- A2A Message schema ---
+
+export const a2aMessageSchema = z.object({
+  kind: z.literal("message"),
+  messageId: z.string().min(1),
+  role: z.enum(["user", "agent"]),
+  parts: z.array(partSchema).min(1),
+  contextId: z.string().optional(),
+  taskId: z.string().optional(),
+  referenceTaskIds: z.array(z.string()).optional(),
+  extensions: z.array(z.string()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
-/** Text payload schema */
-export const textPayloadSchema = z.object({
-  text: z.string().min(1),
+// --- A2A Task schemas ---
+
+export const taskStatusSchema = z.object({
+  state: z.enum([
+    "submitted",
+    "working",
+    "input-required",
+    "completed",
+    "canceled",
+    "failed",
+    "rejected",
+    "auth-required",
+    "unknown",
+  ]),
+  message: a2aMessageSchema.optional(),
+  timestamp: z.string().optional(),
 });
 
-/** Pong payload schema */
-export const pongPayloadSchema = z.object({
-  originalTs: z.string(),
-  latencyMs: z.number().optional(),
+export const artifactSchema = z.object({
+  artifactId: z.string().min(1),
+  parts: z.array(partSchema).min(1),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  extensions: z.array(z.string()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
-/** Profile payload schema */
-export const profilePayloadSchema = z.object({
+export const taskSchema = z.object({
+  kind: z.literal("task"),
+  id: z.string().min(1),
+  contextId: z.string().min(1),
+  status: taskStatusSchema,
+  artifacts: z.array(artifactSchema).optional(),
+  history: z.array(a2aMessageSchema).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+// --- A2A AgentCard schemas ---
+
+export const agentSkillSchema = z.object({
+  id: z.string().min(1),
   name: z.string().min(1),
-  bio: z.string().optional(),
-  skills: z.array(z.string()).optional(),
-  availability: z.enum(["online", "offline"]).optional(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  examples: z.array(z.string()).optional(),
+  inputModes: z.array(z.string()).optional(),
+  outputModes: z.array(z.string()).optional(),
 });
 
-/** Skill request payload schema */
-export const skillRequestPayloadSchema = z.object({
-  skill: z.string().min(1),
-  input: z.record(z.unknown()),
-  requestId: z.string().min(1),
+export const agentCardSchema = z.object({
+  name: z.string().min(1),
+  description: z.string(),
+  url: z.string().min(1),
+  version: z.string(),
+  protocolVersion: z.string(),
+  skills: z.array(agentSkillSchema),
+  capabilities: z.object({
+    streaming: z.boolean().optional(),
+    pushNotifications: z.boolean().optional(),
+    stateTransitionHistory: z.boolean().optional(),
+  }),
+  defaultInputModes: z.array(z.string()),
+  defaultOutputModes: z.array(z.string()),
+  preferredTransport: z.string().optional(),
+  provider: z
+    .object({
+      organization: z.string(),
+      url: z.string(),
+    })
+    .optional(),
 });
 
-/** Skill response payload schema */
-export const skillResponsePayloadSchema = z.object({
-  requestId: z.string().min(1),
-  output: z.record(z.unknown()),
-  success: z.boolean(),
-  error: z.string().optional(),
-});
+// --- Reef-specific schemas (kept/updated) ---
 
-/** Agent profile schema (for directory registration) */
+/** Registration payload — now includes full AgentCard */
 export const registerPayloadSchema = z.object({
   address: z.string().min(1),
-  name: z.string().min(1).max(128),
-  bio: z.string().optional(),
-  skills: z.array(z.string()).optional(),
-  version: z.string().optional(),
-  reefVersion: z.string().optional(),
+  agentCard: agentCardSchema,
 });
 
 /** Heartbeat request schema */
@@ -82,16 +150,7 @@ export const contactSchema = z.object({
   trusted: z.boolean(),
 });
 
-/**
- * Validate an envelope — returns typed result or throws.
- */
-export function validateEnvelope(data: unknown) {
-  return envelopeSchema.parse(data);
-}
-
-/**
- * Validate an agent profile for directory registration.
- */
-export function validateProfile(data: unknown) {
+/** Validate a registration payload */
+export function validateRegistration(data: unknown) {
   return registerPayloadSchema.parse(data);
 }

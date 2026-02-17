@@ -1,3 +1,5 @@
+import type { AgentCard } from "@a2a-js/sdk";
+
 const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
 
 interface SearchOptions {
@@ -30,6 +32,7 @@ export async function searchCommand(options: SearchOptions): Promise<void> {
         bio?: string;
         skills?: string[];
         availability: string;
+        agentCard?: AgentCard | null;
       }>;
     };
 
@@ -46,6 +49,20 @@ export async function searchCommand(options: SearchOptions): Promise<void> {
       if (agent.bio) console.log(`    Bio:          ${agent.bio}`);
       if (agent.skills?.length)
         console.log(`    Skills:       ${agent.skills.join(", ")}`);
+      if (agent.agentCard) {
+        console.log(
+          `    Transport:    ${agent.agentCard.preferredTransport || "JSONRPC"}`,
+        );
+        console.log(
+          `    Protocol:     A2A v${agent.agentCard.protocolVersion}`,
+        );
+        if (agent.agentCard.skills.length > 0) {
+          const skillNames = agent.agentCard.skills
+            .map((s) => s.name)
+            .join(", ");
+          console.log(`    A2A Skills:   ${skillNames}`);
+        }
+      }
       console.log();
     }
   } catch (err) {

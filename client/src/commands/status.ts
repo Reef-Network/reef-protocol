@@ -1,5 +1,6 @@
 import { loadIdentity, getConfigDir } from "../identity.js";
 import { loadContacts } from "../contacts.js";
+import { REEF_VERSION, A2A_PROTOCOL_VERSION } from "@reef-protocol/protocol";
 
 const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
 
@@ -8,14 +9,16 @@ export async function statusCommand(): Promise<void> {
   const identity = loadIdentity(configDir);
 
   console.log("=== Reef Status ===\n");
+  console.log(`Reef version:     ${REEF_VERSION}`);
+  console.log(`A2A protocol:     ${A2A_PROTOCOL_VERSION}`);
 
   if (identity) {
-    console.log("Identity:");
+    console.log("\nIdentity:");
     console.log(`  Address:  ${identity.address}`);
     console.log(`  XMTP Env: ${identity.xmtpEnv}`);
     console.log(`  Created:  ${identity.createdAt}`);
   } else {
-    console.log("Identity: Not created yet");
+    console.log("\nIdentity: Not created yet");
     console.log("  Run 'reef identity' to generate one.\n");
   }
 

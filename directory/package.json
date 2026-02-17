@@ -16,6 +16,7 @@
     "migrate:create": "tsx src/migrate.ts create"
   },
   "dependencies": {
+    "@a2a-js/sdk": "^0.3.0",
     "@reef-protocol/protocol": "*",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",
