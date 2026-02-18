@@ -29,7 +29,7 @@ describe("identity", () => {
     expect(identity.address.startsWith("0x")).toBe(true);
     expect(identity.publicKey).toBeDefined();
     expect(identity.createdAt).toBeDefined();
-    expect(identity.xmtpEnv).toBe("dev");
+    expect(identity.xmtpEnv).toBe("production");
   });
 
   it("saves identity.json to config dir", () => {
