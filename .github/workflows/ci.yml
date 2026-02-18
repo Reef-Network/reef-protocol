@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
 
 jobs:
   build-and-test:
@@ -42,3 +42,52 @@ jobs:
       - name: Test directory
         run: npx vitest run
         working-directory: directory
+
+  publish:
+    name: Publish to npm
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all packages
+        run: npm run build
+
+      - name: Publish protocol (if version changed)
+        working-directory: protocol
+        run: |
+          LOCAL=$(node -p "require('./package.json').version")
+          REMOTE=$(npm view @reef-protocol/protocol version 2>/dev/null || echo "0.0.0")
+          if [ "$LOCAL" != "$REMOTE" ]; then
+            echo "Publishing @reef-protocol/protocol@$LOCAL (was $REMOTE)"
+            npm publish --access public
+          else
+            echo "@reef-protocol/protocol@$LOCAL already published, skipping"
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish client (if version changed)
+        working-directory: client
+        run: |
+          LOCAL=$(node -p "require('./package.json').version")
+          REMOTE=$(npm view @reef-protocol/client version 2>/dev/null || echo "0.0.0")
+          if [ "$LOCAL" != "$REMOTE" ]; then
+            echo "Publishing @reef-protocol/client@$LOCAL (was $REMOTE)"
+            npm publish --access public
+          else
+            echo "@reef-protocol/client@$LOCAL already published, skipping"
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
