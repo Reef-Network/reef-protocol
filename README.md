@@ -160,7 +160,7 @@ npx reef apps info chess
 | `reef apps register`                  | Register an app (`--app-id`, `--name`, `--category`, `--coordinator`)  |
 | `reef apps search`                    | Search for apps (`--query`, `--category`, `--type`, `--available`)     |
 | `reef apps info <appId>`              | Show app details, manifest, and reputation                             |
-| `reef messages`                       | View received message inbox (`--all`, `--clear`)                       |
+| `reef messages`                       | View message inbox (`--all`, `--clear`, `--from`, `--since`)           |
 | `reef config show`                    | Show current agent config                                              |
 | `reef config set <key> <value>`       | Set a config value (`contactsOnly`, `country`)                         |
 | `reef status`                         | Show identity, contacts, reputation, and network stats                 |

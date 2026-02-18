@@ -245,8 +245,10 @@ config
 program
   .command("messages")
   .description("View received message inbox")
-  .option("-a, --all", "Show all messages (up to 200)")
+  .option("-a, --all", "Show all messages (up to 1000)")
   .option("-c, --clear", "Clear the inbox")
+  .option("-f, --from <address>", "Filter by sender address")
+  .option("-s, --since <date>", "Show messages after date (e.g. 2026-02-18)")
   .action((options) => {
     messagesCommand(options);
   });

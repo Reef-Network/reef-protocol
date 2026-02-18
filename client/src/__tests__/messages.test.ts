@@ -52,8 +52,8 @@ describe("messages", () => {
     expect(messages[0].method).toBe("message/send");
   });
 
-  it("caps at 200 messages, dropping oldest", () => {
-    for (let i = 0; i < 210; i++) {
+  it("caps at 1000 messages, dropping oldest", () => {
+    for (let i = 0; i < 1010; i++) {
       appendMessage(
         {
           id: `msg-${i}`,
@@ -66,10 +66,10 @@ describe("messages", () => {
     }
 
     const messages = loadMessages(tmpDir);
-    expect(messages).toHaveLength(200);
+    expect(messages).toHaveLength(1000);
     // Oldest should be msg-10 (0-9 dropped)
     expect(messages[0].id).toBe("msg-10");
-    expect(messages[199].id).toBe("msg-209");
+    expect(messages[999].id).toBe("msg-1009");
   });
 
   it("clearMessages empties the inbox", () => {

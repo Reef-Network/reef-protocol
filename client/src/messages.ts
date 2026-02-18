@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { getConfigDir } from "./identity.js";
 
-const MAX_MESSAGES = 200;
+const MAX_MESSAGES = 1000;
 
 export interface InboxMessage {
   id: string;

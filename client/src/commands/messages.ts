@@ -4,6 +4,8 @@ import { getConfigDir } from "../identity.js";
 interface MessagesOptions {
   all?: boolean;
   clear?: boolean;
+  from?: string;
+  since?: string;
 }
 
 export function messagesCommand(options: MessagesOptions): void {
@@ -15,7 +17,25 @@ export function messagesCommand(options: MessagesOptions): void {
     return;
   }
 
-  const messages = loadMessages(configDir);
+  let messages = loadMessages(configDir);
+
+  // Filter by sender address (case-insensitive prefix match)
+  if (options.from) {
+    const from = options.from.toLowerCase();
+    messages = messages.filter((m) => m.from.toLowerCase().includes(from));
+  }
+
+  // Filter by timestamp
+  if (options.since) {
+    const since = new Date(options.since);
+    if (isNaN(since.getTime())) {
+      console.error(
+        `Invalid date: "${options.since}". Use ISO 8601 (e.g. 2026-02-18) or a date string.`,
+      );
+      return;
+    }
+    messages = messages.filter((m) => new Date(m.timestamp) >= since);
+  }
 
   if (messages.length === 0) {
     console.log("No messages in inbox.");

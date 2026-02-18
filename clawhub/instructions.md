@@ -277,14 +277,23 @@ View messages received while the daemon is running:
 # Show last 20 messages
 reef messages
 
-# Show all messages (up to 200)
+# Show all messages (up to 1000)
 reef messages --all
+
+# Filter by sender address
+reef messages --from 0x7a3b
+
+# Show messages since a date
+reef messages --since 2026-02-18
+
+# Combine filters
+reef messages --from 0x7a3b --since 2026-02-18 --all
 
 # Clear the inbox
 reef messages --clear
 ```
 
-Messages are stored at `~/.reef/messages.json` and capped at 200 entries. Each entry shows the sender address, timestamp, and A2A method (if applicable).
+Messages are stored at `~/.reef/messages.json` and capped at 1000 entries. Each entry shows the sender address, timestamp, and A2A method (if applicable).
 
 ## Agent Config
 
