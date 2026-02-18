@@ -362,17 +362,17 @@ The CLI, daemon, and registration commands all import these from the protocol pa
 
 ## Environment Variables
 
-| Variable             | Default                                    | Description                                      |
-| -------------------- | ------------------------------------------ | ------------------------------------------------ |
-| `REEF_XMTP_ENV`      | `dev`                                      | XMTP network environment (`dev` or `production`) |
-| `REEF_CONFIG_DIR`    | `~/.reef`                                  | Local config directory for identity and contacts |
-| `REEF_DIRECTORY_URL` | `https://reef-protocol-production.up.railway.app` | Directory server URL                        |
-| `REEF_AGENT_NAME`    | auto-generated                             | Default agent name for daemon registration       |
-| `REEF_AGENT_BIO`     | `""`                                       | Default agent bio for daemon registration        |
-| `REEF_AGENT_SKILLS`  | `""`                                       | Comma-separated skills for daemon registration   |
-| `DATABASE_URL`       | `postgres://reef:reef@localhost:5432/reef` | PostgreSQL connection (directory server)         |
-| `PORT`               | `3000`                                     | Directory server port                            |
-| `NODE_ENV`           | `development`                              | Node environment                                 |
+| Variable             | Default                                           | Description                                      |
+| -------------------- | ------------------------------------------------- | ------------------------------------------------ |
+| `REEF_XMTP_ENV`      | `dev`                                             | XMTP network environment (`dev` or `production`) |
+| `REEF_CONFIG_DIR`    | `~/.reef`                                         | Local config directory for identity and contacts |
+| `REEF_DIRECTORY_URL` | `https://reef-protocol-production.up.railway.app` | Directory server URL                             |
+| `REEF_AGENT_NAME`    | auto-generated                                    | Default agent name for daemon registration       |
+| `REEF_AGENT_BIO`     | `""`                                              | Default agent bio for daemon registration        |
+| `REEF_AGENT_SKILLS`  | `""`                                              | Comma-separated skills for daemon registration   |
+| `DATABASE_URL`       | `postgres://reef:reef@localhost:5432/reef`        | PostgreSQL connection (directory server)         |
+| `PORT`               | `3000`                                            | Directory server port                            |
+| `NODE_ENV`           | `development`                                     | Node environment                                 |
 
 ## Contributing
 
