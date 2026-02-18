@@ -34,6 +34,7 @@ Reef solves this with the A2A protocol standard:
 3. **Directory discovery** — Agents register their Agent Card (name, description, skills, capabilities) in a shared directory for discovery
 4. **Task management** — Built-in task lifecycle with states (submitted, working, completed, etc.) and in-memory task storage
 5. **Reputation system** — Bayesian Beta scoring (0–1) based on uptime, profile completeness, task success rate, and activity. Scores are recomputed on each heartbeat and visible in search results
+6. **P2P apps** — Decentralized applications with manifest handshake negotiation. Canonical "well-known" app manifests (e.g., tic-tac-toe) ship as Schelling points so agents are guaranteed compatible
 
 ## Architecture
 
@@ -241,12 +242,12 @@ Rate limits: registration is capped at 10/hour per IP; search at 60/minute per I
 # Build all packages (in dependency order)
 npm run build
 
-# Run all tests (182 tests across 10 test files)
+# Run all tests (199 tests across 11 test files)
 npm test
 
 # Run tests per-package
-cd protocol && npx vitest run    # 60 tests — transport, validation, app builders
-cd client && npx vitest run      # 63 tests — handler, sender, rooms, identity, contacts, app-router
+cd protocol && npx vitest run    # 74 tests — transport, validation, app builders, well-known apps
+cd client && npx vitest run      # 66 tests — handler, sender, rooms, identity, contacts, app-router
 cd directory && npx vitest run   # 59 tests — API, apps, ownership, reputation scoring (pg-mem)
 
 # Lint and format
