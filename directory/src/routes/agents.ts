@@ -8,7 +8,12 @@ import type { AgentCard } from "@a2a-js/sdk";
 import { Agent } from "../models/Agent.js";
 import { App } from "../models/App.js";
 import { toAppReputationInput } from "./apps.js";
-import { registrationLimiter, searchLimiter } from "../middleware/rateLimit.js";
+import {
+  registrationLimiter,
+  searchLimiter,
+  heartbeatLimiter,
+  readLimiter,
+} from "../middleware/rateLimit.js";
 import {
   computeReputationScore,
   computeReputationComponents,
@@ -143,7 +148,7 @@ agentsRouter.get("/search", searchLimiter, async (req, res, next) => {
  * POST /agents/heartbeat
  * Update agent heartbeat timestamp.
  */
-agentsRouter.post("/heartbeat", async (req, res, next) => {
+agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
   try {
     const body = heartbeatPayloadSchema.parse(req.body);
 
@@ -241,39 +246,43 @@ agentsRouter.post("/heartbeat", async (req, res, next) => {
  * GET /agents/:address/reputation
  * Get full reputation breakdown for an agent.
  */
-agentsRouter.get("/:address/reputation", async (req, res, next) => {
-  try {
-    const agent = await Agent.findByPk(req.params.address);
-    if (!agent) {
-      res.status(404).json({ error: "Agent not found" });
-      return;
+agentsRouter.get(
+  "/:address/reputation",
+  readLimiter,
+  async (req, res, next) => {
+    try {
+      const agent = await Agent.findByPk(req.params.address as string);
+      if (!agent) {
+        res.status(404).json({ error: "Agent not found" });
+        return;
+      }
+
+      const input = toReputationInput(agent);
+      const components = computeReputationComponents(input);
+
+      res.json({
+        address: agent.address,
+        score: agent.reputation_score,
+        components,
+        tasksCompleted: agent.tasks_completed,
+        tasksFailed: agent.tasks_failed,
+        totalInteractions: agent.total_interactions,
+        registeredAt: agent.created_at?.toISOString(),
+        updatedAt: agent.reputation_updated_at?.toISOString() ?? null,
+      });
+    } catch (err) {
+      next(err);
     }
-
-    const input = toReputationInput(agent);
-    const components = computeReputationComponents(input);
-
-    res.json({
-      address: agent.address,
-      score: agent.reputation_score,
-      components,
-      tasksCompleted: agent.tasks_completed,
-      tasksFailed: agent.tasks_failed,
-      totalInteractions: agent.total_interactions,
-      registeredAt: agent.created_at?.toISOString(),
-      updatedAt: agent.reputation_updated_at?.toISOString() ?? null,
-    });
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 /**
  * GET /agents/:address
  * Get a single agent profile by address.
  */
-agentsRouter.get("/:address", async (req, res, next) => {
+agentsRouter.get("/:address", readLimiter, async (req, res, next) => {
   try {
-    const agent = await Agent.findByPk(req.params.address);
+    const agent = await Agent.findByPk(req.params.address as string);
     if (!agent) {
       res.status(404).json({ error: "Agent not found" });
       return;

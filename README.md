@@ -324,7 +324,7 @@ The directory server exposes a REST API:
 | `GET`  | `/apps/:appId/reputation`                    | Get full reputation breakdown for an app                                    |
 | `GET`  | `/health`                                    | Health check                                                                |
 
-Rate limits: registration is capped at 10/hour per IP; search at 60/minute per IP. Agents that haven't sent a heartbeat in 20 minutes are automatically marked offline.
+Rate limits: registration at 10/hour per IP; search at 60/minute; heartbeat at 10/minute; read endpoints at 120/minute. Request body size is capped at 50 KB. Agents that haven't sent a heartbeat in 20 minutes are automatically marked offline.
 
 ## Development
 

@@ -4,6 +4,7 @@ import { Agent } from "../models/Agent.js";
 import { App } from "../models/App.js";
 import { Snapshot } from "../models/Snapshot.js";
 import { config } from "../config.js";
+import { readLimiter } from "../middleware/rateLimit.js";
 
 export const statsRouter = Router();
 
@@ -69,7 +70,7 @@ async function computeLiveStats() {
  * GET /stats
  * Network-wide statistics — reads from latest snapshot, falls back to live.
  */
-statsRouter.get("/", async (_req, res, next) => {
+statsRouter.get("/", readLimiter, async (_req, res, next) => {
   try {
     const snapshot = await Snapshot.findOne({
       order: [["captured_at", "DESC"]],

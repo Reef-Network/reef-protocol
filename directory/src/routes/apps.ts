@@ -2,7 +2,11 @@ import { Router } from "express";
 import { Op } from "sequelize";
 import { appRegisterPayloadSchema } from "@reef-protocol/protocol";
 import { App } from "../models/App.js";
-import { registrationLimiter, searchLimiter } from "../middleware/rateLimit.js";
+import {
+  registrationLimiter,
+  searchLimiter,
+  readLimiter,
+} from "../middleware/rateLimit.js";
 import { computeReputationComponents } from "../reputation.js";
 import type { ReputationInput } from "../reputation.js";
 
@@ -148,9 +152,9 @@ appsRouter.get("/search", searchLimiter, async (req, res, next) => {
  * GET /apps/:appId/reputation
  * Get full reputation breakdown for an app.
  */
-appsRouter.get("/:appId/reputation", async (req, res, next) => {
+appsRouter.get("/:appId/reputation", readLimiter, async (req, res, next) => {
   try {
-    const app = await App.findByPk(req.params.appId);
+    const app = await App.findByPk(req.params.appId as string);
     if (!app) {
       res.status(404).json({ error: "App not found" });
       return;
@@ -178,9 +182,9 @@ appsRouter.get("/:appId/reputation", async (req, res, next) => {
  * GET /apps/:appId
  * Get a single app profile.
  */
-appsRouter.get("/:appId", async (req, res, next) => {
+appsRouter.get("/:appId", readLimiter, async (req, res, next) => {
   try {
-    const app = await App.findByPk(req.params.appId);
+    const app = await App.findByPk(req.params.appId as string);
     if (!app) {
       res.status(404).json({ error: "App not found" });
       return;

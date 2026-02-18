@@ -17,3 +17,21 @@ export const searchLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+/** Rate limiter for heartbeat: 10 requests per minute per IP */
+export const heartbeatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: "Too many heartbeat requests. Try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** Rate limiter for read endpoints: 120 requests per minute per IP */
+export const readLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  message: { error: "Too many requests. Try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
