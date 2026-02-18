@@ -1,7 +1,7 @@
 /** A2A JSON-RPC request handler over XMTP */
 
 import type { Agent } from "@xmtp/agent-sdk";
-import type { Message, Task } from "@a2a-js/sdk";
+import type { Message, Task, TaskState } from "@a2a-js/sdk";
 import type { TaskStore } from "@a2a-js/sdk/server";
 import {
   decodeA2AMessage,
@@ -18,6 +18,20 @@ export interface AgentLogicHandler {
   cancelTask?(taskId: string): Promise<Task>;
 }
 
+/** Callback fired when a task reaches a terminal state */
+export type TaskOutcomeCallback = (
+  state: TaskState,
+  counterpartyAddress: string,
+) => void;
+
+/** Terminal task states that trigger outcome reporting */
+const TERMINAL_STATES: TaskState[] = [
+  "completed",
+  "failed",
+  "canceled",
+  "rejected",
+];
+
 /**
  * Handle an inbound A2A message received over XMTP.
  * Decodes JSON-RPC, dispatches by method, and sends responses back.
@@ -28,6 +42,7 @@ export async function handleA2AMessage(
   agent: Agent,
   taskStore: TaskStore,
   logicHandler: AgentLogicHandler,
+  onTaskOutcome?: TaskOutcomeCallback,
 ): Promise<void> {
   const decoded = decodeA2AMessage(raw);
 
@@ -77,9 +92,17 @@ export async function handleA2AMessage(
           existingTask,
         );
 
-        // If result is a Task, store it
+        // If result is a Task, store it and report outcome
         if ("kind" in result && result.kind === "task") {
-          await taskStore.save(result as Task);
+          const task = result as Task;
+          await taskStore.save(task);
+
+          if (
+            onTaskOutcome &&
+            TERMINAL_STATES.includes(task.status.state as TaskState)
+          ) {
+            onTaskOutcome(task.status.state as TaskState, fromAddress);
+          }
         }
 
         await sendSuccessResponse(agent, fromAddress, requestId, result);
@@ -141,6 +164,14 @@ export async function handleA2AMessage(
 
         const canceledTask = await logicHandler.cancelTask(params.id);
         await taskStore.save(canceledTask);
+
+        if (
+          onTaskOutcome &&
+          TERMINAL_STATES.includes(canceledTask.status.state as TaskState)
+        ) {
+          onTaskOutcome(canceledTask.status.state as TaskState, fromAddress);
+        }
+
         await sendSuccessResponse(agent, fromAddress, requestId, canceledTask);
         break;
       }

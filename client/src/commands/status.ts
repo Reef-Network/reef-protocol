@@ -7,6 +7,7 @@ const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
 export async function statusCommand(): Promise<void> {
   const configDir = getConfigDir();
   const identity = loadIdentity(configDir);
+  const directoryUrl = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
 
   console.log("=== Reef Status ===\n");
   console.log(`Reef version:     ${REEF_VERSION}`);
@@ -17,6 +18,26 @@ export async function statusCommand(): Promise<void> {
     console.log(`  Address:  ${identity.address}`);
     console.log(`  XMTP Env: ${identity.xmtpEnv}`);
     console.log(`  Created:  ${identity.createdAt}`);
+
+    // Fetch own reputation
+    try {
+      const repRes = await fetch(
+        `${directoryUrl}/agents/${identity.address}/reputation`,
+      );
+      if (repRes.ok) {
+        const rep = (await repRes.json()) as {
+          score: number;
+          tasksCompleted: number;
+          tasksFailed: number;
+        };
+        console.log(`\nReputation:`);
+        console.log(`  Score:          ${rep.score.toFixed(3)}`);
+        console.log(`  Tasks done:     ${rep.tasksCompleted}`);
+        console.log(`  Tasks failed:   ${rep.tasksFailed}`);
+      }
+    } catch {
+      // Directory may be offline — skip reputation display
+    }
   } else {
     console.log("\nIdentity: Not created yet");
     console.log("  Run 'reef identity' to generate one.\n");
@@ -26,8 +47,6 @@ export async function statusCommand(): Promise<void> {
   console.log(`\nContacts: ${contacts.length}`);
 
   // Fetch network stats from directory
-  const directoryUrl = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
-
   try {
     const res = await fetch(`${directoryUrl}/stats`);
     if (res.ok) {
@@ -35,12 +54,18 @@ export async function statusCommand(): Promise<void> {
         totalAgents: number;
         onlineAgents: number;
         topSkills: string[];
+        averageReputationScore?: number;
       };
       console.log(`\nNetwork:`);
       console.log(`  Total agents:  ${stats.totalAgents}`);
       console.log(`  Online agents: ${stats.onlineAgents}`);
       if (stats.topSkills.length > 0) {
         console.log(`  Top skills:    ${stats.topSkills.join(", ")}`);
+      }
+      if (stats.averageReputationScore != null) {
+        console.log(
+          `  Avg reputation: ${stats.averageReputationScore.toFixed(3)}`,
+        );
       }
     } else {
       console.log(`\nNetwork: Could not reach directory`);

@@ -138,6 +138,8 @@ export const heartbeatPayloadSchema = z.object({
     .object({
       messagesHandled: z.number().optional(),
       uptime: z.number().optional(),
+      tasksCompleted: z.number().int().min(0).optional(),
+      tasksFailed: z.number().int().min(0).optional(),
     })
     .optional(),
 });

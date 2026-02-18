@@ -123,6 +123,16 @@ describe("GET /agents/:address", () => {
     expect(res.body.agentCard.protocolVersion).toBe("0.3.0");
   });
 
+  it("includes reputation fields in profile", async () => {
+    const res = await request.get("/agents/0xAgent001");
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.reputationScore).toBe("number");
+    expect(typeof res.body.tasksCompleted).toBe("number");
+    expect(typeof res.body.tasksFailed).toBe("number");
+    expect(typeof res.body.totalInteractions).toBe("number");
+  });
+
   it("returns 404 for unknown agent", async () => {
     const res = await request.get("/agents/0xDoesNotExist");
     expect(res.status).toBe(404);
@@ -144,6 +154,13 @@ describe("GET /agents/search", () => {
     expect(res.status).toBe(200);
     expect(res.body.agents[0].agentCard).toBeTruthy();
     expect(res.body.agents[0].agentCard.url).toContain("xmtp://");
+  });
+
+  it("includes reputationScore in search results", async () => {
+    const res = await request.get("/agents/search?q=Test");
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.agents[0].reputationScore).toBe("number");
   });
 
   it("filters by online status", async () => {
@@ -183,6 +200,21 @@ describe("POST /agents/heartbeat", () => {
     expect(res.status).toBe(404);
   });
 
+  it("accumulates task telemetry", async () => {
+    const res = await request.post("/agents/heartbeat").send({
+      address: "0xAgent001",
+      telemetry: { tasksCompleted: 5, tasksFailed: 1 },
+    });
+
+    expect(res.status).toBe(200);
+
+    // Verify counters were accumulated
+    const profile = await request.get("/agents/0xAgent001");
+    expect(profile.body.tasksCompleted).toBe(5);
+    expect(profile.body.tasksFailed).toBe(1);
+    expect(profile.body.totalInteractions).toBe(6);
+  });
+
   it("rejects missing address", async () => {
     const res = await request.post("/agents/heartbeat").send({});
 
@@ -190,14 +222,41 @@ describe("POST /agents/heartbeat", () => {
   });
 });
 
+describe("GET /agents/:address/reputation", () => {
+  it("returns reputation breakdown", async () => {
+    const res = await request.get("/agents/0xAgent001/reputation");
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.score).toBe("number");
+    expect(res.body.address).toBe("0xAgent001");
+    expect(res.body.components).toHaveProperty("uptimeReliability");
+    expect(res.body.components).toHaveProperty("profileCompleteness");
+    expect(res.body.components).toHaveProperty("taskSuccessRate");
+    expect(res.body.components).toHaveProperty("activityLevel");
+    expect(typeof res.body.tasksCompleted).toBe("number");
+    expect(typeof res.body.tasksFailed).toBe("number");
+    expect(typeof res.body.totalInteractions).toBe("number");
+  });
+
+  it("returns 404 for unknown agent", async () => {
+    const res = await request.get("/agents/0xUnknown/reputation");
+    expect(res.status).toBe(404);
+  });
+});
+
 describe("GET /stats", () => {
   it("returns live stats when no snapshot exists", async () => {
+    // Delete snapshots to force live computation
+    const { Snapshot } = await import("../models/Snapshot.js");
+    await Snapshot.destroy({ where: {} });
+
     const res = await request.get("/stats");
 
     expect(res.status).toBe(200);
     expect(typeof res.body.totalAgents).toBe("number");
     expect(typeof res.body.onlineAgents).toBe("number");
     expect(Array.isArray(res.body.topSkills)).toBe(true);
+    expect(typeof res.body.averageReputationScore).toBe("number");
     expect(res.body.capturedAt).toBeUndefined();
   });
 

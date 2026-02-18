@@ -24,8 +24,8 @@ npm run format           # Prettier auto-format
 
 # Tests (run per-package — no Docker or database needed)
 cd protocol && npx vitest run    # 40 tests
-cd client && npx vitest run      # 31 tests
-cd directory && npx vitest run   # 16 tests — uses pg-mem in-memory
+cd client && npx vitest run      # 34 tests
+cd directory && npx vitest run   # 35 tests — uses pg-mem in-memory
 ```
 
 ## Key conventions
@@ -38,6 +38,7 @@ cd directory && npx vitest run   # 16 tests — uses pg-mem in-memory
 - **AgentCard registration** — Agents register with the directory by sending a full A2A `AgentCard` (name, description, skills, capabilities, transport URL). Flat fields (name, skills tags) are extracted for search/stats compat.
 - **Models use init functions** — Sequelize models in `directory/src/models/` export `initAgentModel(sequelize)` / `initSnapshotModel(sequelize)` for testability. They're called by `initDb()` in `db.ts`.
 - **AgentLogicHandler interface** — Client handler dispatches A2A requests to an `AgentLogicHandler` which processes messages and returns Tasks. Default is an echo handler; replace with real logic.
+- **Reputation system** — Bayesian Beta scoring (0–1) computed from uptime reliability, profile completeness, task success rate, and activity level. Score is recomputed on each heartbeat. Task outcome counters are accumulated via heartbeat telemetry.
 
 ## Commit and PR conventions
 
@@ -59,23 +60,24 @@ client/src/
   identity.ts       <- Keypair generation, loads from ~/.reef/
   agent.ts          <- XMTP Agent wrapper
   contacts.ts       <- Contact list CRUD (contacts.json)
-  handler.ts        <- A2A JSON-RPC request dispatcher (message/send, tasks/get, tasks/cancel)
+  handler.ts        <- A2A JSON-RPC request dispatcher (message/send, tasks/get, tasks/cancel), onTaskOutcome callback
   logic.ts          <- Default echo AgentLogicHandler
   sender.ts         <- sendTextMessage(), sendA2AMessage(), sendGetTaskRequest(), sendCancelTaskRequest()
-  heartbeat.ts      <- Periodic directory heartbeat
-  daemon.ts         <- Long-running process: AgentCard registration, InMemoryTaskStore, A2A handler
+  heartbeat.ts      <- Periodic directory heartbeat with getTelemetry callback
+  daemon.ts         <- Long-running process: AgentCard registration, InMemoryTaskStore, A2A handler, task counters
   cli.ts            <- Commander CLI entry point
-  commands/         <- One file per subcommand
+  commands/         <- One file per subcommand (identity, send, search, register, status, reputation, contacts)
 
 directory/src/
   app.ts            <- Express app setup
   db.ts             <- Sequelize init (accepts injected instance for tests)
   config.ts         <- Env config
   sweep.ts          <- Marks stale agents offline
-  models/           <- Agent (with agent_card JSONB column), Snapshot (with init functions)
-  routes/           <- agents.ts (register with AgentCard/search/heartbeat), stats.ts
+  reputation.ts     <- Bayesian reputation scoring (computeReputationScore, computeReputationComponents)
+  models/           <- Agent (with agent_card JSONB + reputation columns), Snapshot (with init functions)
+  routes/           <- agents.ts (register/search/heartbeat/reputation), stats.ts
   middleware/       <- Rate limiting
-  migrations/       <- Umzug migrations (00001, 00002, 00003_add-agent-card)
+  migrations/       <- Umzug migrations (00001–00004, including add-reputation-fields)
 ```
 
 ## Gotchas

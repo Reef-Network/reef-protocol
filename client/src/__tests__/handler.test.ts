@@ -279,4 +279,90 @@ describe("handleA2AMessage", () => {
 
     consoleSpy.mockRestore();
   });
+
+  it("calls onTaskOutcome for completed tasks", async () => {
+    const onTaskOutcome = vi.fn();
+
+    const raw = encodeA2AMessage({
+      jsonrpc: "2.0",
+      id: "req-outcome-1",
+      method: "message/send",
+      params: {
+        message: {
+          kind: "message",
+          messageId: "msg-outcome-1",
+          role: "user",
+          parts: [{ kind: "text", text: "Hello" }],
+        },
+      },
+    });
+
+    await handleA2AMessage(
+      raw,
+      "0xSender",
+      mockAgent.agent,
+      mockTaskStore.store,
+      logicHandler,
+      onTaskOutcome,
+    );
+
+    // The default test handler returns a completed task
+    expect(onTaskOutcome).toHaveBeenCalledWith("completed", "0xSender");
+  });
+
+  it("calls onTaskOutcome for canceled tasks", async () => {
+    const onTaskOutcome = vi.fn();
+    const canceledTask: Task = {
+      kind: "task",
+      id: "task-cancel-outcome",
+      contextId: "ctx-1",
+      status: { state: "canceled" },
+    };
+    logicHandler.cancelTask = vi.fn(async () => canceledTask);
+
+    const raw = encodeA2AMessage({
+      jsonrpc: "2.0",
+      id: "req-outcome-2",
+      method: "tasks/cancel",
+      params: { id: "task-cancel-outcome" },
+    });
+
+    await handleA2AMessage(
+      raw,
+      "0xSender",
+      mockAgent.agent,
+      mockTaskStore.store,
+      logicHandler,
+      onTaskOutcome,
+    );
+
+    expect(onTaskOutcome).toHaveBeenCalledWith("canceled", "0xSender");
+  });
+
+  it("does not call onTaskOutcome when callback is not provided", async () => {
+    const raw = encodeA2AMessage({
+      jsonrpc: "2.0",
+      id: "req-no-cb",
+      method: "message/send",
+      params: {
+        message: {
+          kind: "message",
+          messageId: "msg-no-cb",
+          role: "user",
+          parts: [{ kind: "text", text: "Hello" }],
+        },
+      },
+    });
+
+    // Should not throw when onTaskOutcome is undefined
+    await handleA2AMessage(
+      raw,
+      "0xSender",
+      mockAgent.agent,
+      mockTaskStore.store,
+      logicHandler,
+    );
+
+    expect(mockAgent.sentMessages).toHaveLength(1);
+  });
 });

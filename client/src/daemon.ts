@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { buildReefAgentCard, buildSkill } from "@reef-protocol/protocol";
+import type { TaskState } from "@reef-protocol/protocol";
 import { InMemoryTaskStore } from "@a2a-js/sdk/server";
 import { getOrCreateIdentity, getConfigDir } from "./identity.js";
 import { createReefAgent } from "./agent.js";
@@ -68,8 +69,34 @@ export async function startDaemon(): Promise<void> {
     console.warn(`[reef] Could not reach directory: ${(err as Error).message}`);
   }
 
-  // Start heartbeat
-  const stopHeartbeat = startHeartbeat(DIRECTORY_URL, identity);
+  // Task outcome counters for reputation telemetry
+  const taskCounters = { completed: 0, failed: 0 };
+
+  const onTaskOutcome = (state: TaskState) => {
+    if (state === "completed") {
+      taskCounters.completed++;
+    } else if (
+      state === "failed" ||
+      state === "canceled" ||
+      state === "rejected"
+    ) {
+      taskCounters.failed++;
+    }
+  };
+
+  // Start heartbeat with dynamic telemetry
+  const stopHeartbeat = startHeartbeat(DIRECTORY_URL, identity, {
+    getTelemetry: () => {
+      // Return current counters and reset them (directory accumulates)
+      const snapshot = {
+        tasksCompleted: taskCounters.completed,
+        tasksFailed: taskCounters.failed,
+      };
+      taskCounters.completed = 0;
+      taskCounters.failed = 0;
+      return snapshot;
+    },
+  });
 
   // Create task store and logic handler
   const taskStore = new InMemoryTaskStore();
@@ -85,7 +112,14 @@ export async function startDaemon(): Promise<void> {
     // Skip messages from self
     if (sender === agent.address) return;
 
-    await handleA2AMessage(content, sender, agent, taskStore, logicHandler);
+    await handleA2AMessage(
+      content,
+      sender,
+      agent,
+      taskStore,
+      logicHandler,
+      onTaskOutcome,
+    );
   });
 
   await agent.start();
