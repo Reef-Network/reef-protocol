@@ -30,8 +30,8 @@ COPY --from=builder /app/directory/package.json directory/
 COPY --from=builder /app/directory/dist directory/dist/
 COPY --from=builder /app/client/package.json client/
 
-# Install production dependencies only
-RUN npm ci --omit=dev
+# Install production dependencies only (skip husky prepare script)
+RUN npm ci --omit=dev --ignore-scripts
 
 ENV NODE_ENV=production
 EXPOSE 3000
