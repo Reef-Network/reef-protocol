@@ -156,3 +156,44 @@ export const contactSchema = z.object({
 export function validateRegistration(data: unknown) {
   return registerPayloadSchema.parse(data);
 }
+
+// --- App schemas ---
+
+/** App action schema */
+export const appActionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string(),
+  inputSchema: z.record(z.unknown()).optional(),
+  roles: z.array(z.string()).optional(),
+});
+
+/** App manifest schema */
+export const appManifestSchema = z.object({
+  appId: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9-]+$/, "appId must be a lowercase slug"),
+  name: z.string().min(1).max(128),
+  description: z.string(),
+  version: z.string().min(1),
+  category: z.string().max(32).optional(),
+  coordinatorAddress: z.string().optional(),
+  actions: z.array(appActionSchema),
+  stateSchema: z.record(z.unknown()).optional(),
+  minParticipants: z.number().int().min(1),
+  maxParticipants: z.number().int().min(1).optional(),
+});
+
+/** App registration payload schema */
+export const appRegisterPayloadSchema = z.object({
+  address: z.string().min(1),
+  appId: z.string().min(1).max(64),
+  manifest: appManifestSchema,
+});
+
+/** Validate an app registration payload */
+export function validateAppRegistration(data: unknown) {
+  return appRegisterPayloadSchema.parse(data);
+}

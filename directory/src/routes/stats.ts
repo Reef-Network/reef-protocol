@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { Op, fn, col } from "sequelize";
 import { Agent } from "../models/Agent.js";
+import { App } from "../models/App.js";
 import { Snapshot } from "../models/Snapshot.js";
 import { config } from "../config.js";
 
@@ -49,7 +50,19 @@ async function computeLiveStats() {
     ? Math.round(avgResult.avgScore * 1000) / 1000
     : 0.5;
 
-  return { totalAgents, onlineAgents, topSkills, averageReputationScore };
+  const totalApps = await App.count();
+  const availableApps = await App.count({
+    where: { availability: "available" },
+  });
+
+  return {
+    totalAgents,
+    onlineAgents,
+    topSkills,
+    averageReputationScore,
+    totalApps,
+    availableApps,
+  };
 }
 
 /**
@@ -72,11 +85,19 @@ statsRouter.get("/", async (_req, res, next) => {
         ? Math.round(avgResult.avgScore * 1000) / 1000
         : 0.5;
 
+      // Compute live app counts (not snapshotted)
+      const totalApps = await App.count();
+      const availableApps = await App.count({
+        where: { availability: "available" },
+      });
+
       res.json({
         totalAgents: snapshot.total_agents,
         onlineAgents: snapshot.online_agents,
         topSkills: snapshot.top_skills,
         averageReputationScore,
+        totalApps,
+        availableApps,
         capturedAt: snapshot.captured_at.toISOString(),
       });
     } else {

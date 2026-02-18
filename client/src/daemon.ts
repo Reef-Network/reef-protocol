@@ -6,6 +6,7 @@ import { getOrCreateIdentity, getConfigDir } from "./identity.js";
 import { createReefAgent } from "./agent.js";
 import { handleA2AMessage } from "./handler.js";
 import { createDefaultLogicHandler } from "./logic.js";
+import { AppRouter } from "./app-router.js";
 import { startHeartbeat } from "./heartbeat.js";
 import type { MessageContext } from "@xmtp/agent-sdk";
 
@@ -98,9 +99,10 @@ export async function startDaemon(): Promise<void> {
     },
   });
 
-  // Create task store and logic handler
+  // Create task store, logic handler, and app router
   const taskStore = new InMemoryTaskStore();
   const logicHandler = createDefaultLogicHandler();
+  const appRouter = new AppRouter();
 
   // Listen for messages
   agent.on("text", async (ctx: MessageContext<string>) => {
@@ -120,6 +122,7 @@ export async function startDaemon(): Promise<void> {
       logicHandler,
       onTaskOutcome,
       ctx.conversation,
+      appRouter,
     );
   });
 

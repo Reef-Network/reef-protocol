@@ -14,6 +14,11 @@ import { registerCommand } from "./commands/register.js";
 import { statusCommand } from "./commands/status.js";
 import { reputationCommand } from "./commands/reputation.js";
 import {
+  appsRegisterCommand,
+  appsSearchCommand,
+  appsInfoCommand,
+} from "./commands/apps.js";
+import {
   roomsCreateCommand,
   roomsListCommand,
   roomsInfoCommand,
@@ -173,6 +178,44 @@ rooms
   .argument("<address>", "Agent address to remove")
   .action(async (groupId: string, address: string) => {
     await roomsRemoveCommand(groupId, address);
+  });
+
+// reef apps
+const apps = program
+  .command("apps")
+  .description("Manage apps on the Reef network");
+
+apps
+  .command("register")
+  .description("Register an app with the directory")
+  .requiredOption("--app-id <appId>", "Unique app slug (lowercase, hyphens)")
+  .requiredOption("--name <name>", "App display name")
+  .option("--description <desc>", "App description")
+  .option("--category <category>", "Category (game, social, utility)")
+  .option("--coordinator <address>", "Coordinator agent address (omit for P2P)")
+  .option("--manifest <path>", "Path to a JSON manifest file")
+  .action(async (options) => {
+    await appsRegisterCommand(options);
+  });
+
+apps
+  .command("search")
+  .description("Search for apps")
+  .option("-q, --query <query>", "Text search across names and descriptions")
+  .option("--category <category>", "Filter by category")
+  .option("--type <type>", "Filter by type (coordinated, p2p)")
+  .option("--available", "Only show available apps")
+  .option("--sort <field>", "Sort results (reputation)")
+  .action(async (options) => {
+    await appsSearchCommand(options);
+  });
+
+apps
+  .command("info")
+  .description("Show app details")
+  .argument("<appId>", "App ID to look up")
+  .action(async (appId: string) => {
+    await appsInfoCommand(appId);
   });
 
 // reef start

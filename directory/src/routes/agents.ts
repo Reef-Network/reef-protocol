@@ -6,6 +6,8 @@ import {
 } from "@reef-protocol/protocol";
 import type { AgentCard } from "@a2a-js/sdk";
 import { Agent } from "../models/Agent.js";
+import { App } from "../models/App.js";
+import { toAppReputationInput } from "./apps.js";
 import { registrationLimiter, searchLimiter } from "../middleware/rateLimit.js";
 import {
   computeReputationScore,
@@ -181,6 +183,35 @@ agentsRouter.post("/heartbeat", async (req, res, next) => {
     updatedFields.reputation_updated_at = now;
 
     await agent.update(updatedFields);
+
+    // Piggyback: refresh any coordinated apps owned by this agent
+    const coordinatedApps = await App.findAll({
+      where: { coordinator_address: body.address },
+    });
+
+    for (const coordApp of coordinatedApps) {
+      const appFields: Record<string, unknown> = {
+        availability: "available",
+        last_refreshed: now,
+        tasks_completed: coordApp.tasks_completed + completedDelta,
+        tasks_failed: coordApp.tasks_failed + failedDelta,
+        total_interactions:
+          coordApp.total_interactions + completedDelta + failedDelta,
+      };
+
+      const appInput = toAppReputationInput({
+        ...coordApp.get({ plain: true }),
+        tasks_completed: coordApp.tasks_completed + completedDelta,
+        tasks_failed: coordApp.tasks_failed + failedDelta,
+        total_interactions:
+          coordApp.total_interactions + completedDelta + failedDelta,
+        created_at: coordApp.created_at ?? now,
+      } as App);
+
+      appFields.reputation_score = computeReputationScore(appInput, now);
+      appFields.reputation_updated_at = now;
+      await coordApp.update(appFields);
+    }
 
     const totalAgents = await Agent.count();
     const onlineAgents = await Agent.count({

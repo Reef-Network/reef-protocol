@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { agentsRouter } from "./routes/agents.js";
+import { appsRouter } from "./routes/apps.js";
 import { statsRouter } from "./routes/stats.js";
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
@@ -13,6 +14,7 @@ app.use(express.json());
 
 // Routes
 app.use("/agents", agentsRouter);
+app.use("/apps", appsRouter);
 app.use("/stats", statsRouter);
 
 // Health check

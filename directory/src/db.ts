@@ -29,8 +29,10 @@ export async function initDb(instance?: Sequelize): Promise<void> {
   // Import and init models after migrations have run
   const { initAgentModel } = await import("./models/Agent.js");
   const { initSnapshotModel } = await import("./models/Snapshot.js");
+  const { initAppModel } = await import("./models/App.js");
   initAgentModel(sequelize);
   initSnapshotModel(sequelize);
+  initAppModel(sequelize);
 
   console.log("[db] Connected and migrated");
 }

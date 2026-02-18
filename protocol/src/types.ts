@@ -109,6 +109,98 @@ export interface StatsResponse {
   onlineAgents: number;
   topSkills: string[];
   averageReputationScore?: number;
+  totalApps?: number;
+  availableApps?: number;
+}
+
+// --- App types ---
+
+/** A single action an app supports */
+export interface AppAction {
+  id: string;
+  name: string;
+  description: string;
+  inputSchema?: Record<string, unknown>;
+  roles?: string[];
+}
+
+/** Defines an app that runs on the Reef network */
+export interface AppManifest {
+  appId: string;
+  name: string;
+  description: string;
+  version: string;
+  category?: string;
+  coordinatorAddress?: string;
+  actions: AppAction[];
+  stateSchema?: Record<string, unknown>;
+  minParticipants: number;
+  maxParticipants?: number;
+}
+
+/** Request body for POST /apps/register */
+export interface AppRegisterPayload {
+  address: string;
+  appId: string;
+  manifest: AppManifest;
+}
+
+/** Response from POST /apps/register */
+export interface AppRegisterResponse {
+  success: boolean;
+  appNumber: number;
+}
+
+/** Single app in search results */
+export interface AppSearchResult {
+  appId: string;
+  name: string;
+  description: string;
+  version: string;
+  category: string | null;
+  type: "coordinated" | "p2p";
+  coordinatorAddress: string | null;
+  availability: "available" | "offline";
+  manifest: AppManifest;
+  registeredAt?: string;
+  lastRefreshed?: string;
+  registeredBy?: string;
+  reputationScore?: number;
+}
+
+/** Extracted app action from a DataPart */
+export interface AppActionMessage {
+  appId: string;
+  action: string;
+  payload: Record<string, unknown>;
+}
+
+/** Result of comparing two manifests for P2P compatibility */
+export interface ManifestComparisonResult {
+  compatible: boolean;
+  reasons: string[];
+}
+
+/** Search response for apps */
+export interface AppSearchResponse {
+  apps: AppSearchResult[];
+}
+
+/** Full reputation profile for an app */
+export interface AppReputationProfile {
+  appId: string;
+  score: number;
+  components: {
+    uptimeReliability: number;
+    profileCompleteness: number;
+    taskSuccessRate: number;
+    activityLevel: number;
+  };
+  tasksCompleted: number;
+  tasksFailed: number;
+  totalInteractions: number;
+  registeredAt: string;
+  updatedAt: string | null;
 }
 
 /** Full reputation profile for a single agent */

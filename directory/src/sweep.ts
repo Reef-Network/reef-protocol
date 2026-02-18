@@ -1,5 +1,6 @@
 import { Op } from "sequelize";
 import { Agent } from "./models/Agent.js";
+import { App } from "./models/App.js";
 import { config } from "./config.js";
 
 /**
@@ -26,8 +27,36 @@ async function sweepStaleAgents(): Promise<void> {
 }
 
 /**
- * Start the periodic stale-agent sweep.
+ * Mark coordinated apps as offline if their coordinator hasn't refreshed recently.
+ * P2P apps (coordinator_address IS NULL) are never swept.
+ */
+async function sweepStaleApps(): Promise<void> {
+  const cutoff = new Date(
+    Date.now() - config.offlineThresholdMinutes * 60 * 1000,
+  );
+
+  const [count] = await App.update(
+    { availability: "offline" },
+    {
+      where: {
+        availability: "available",
+        coordinator_address: { [Op.ne]: null },
+        last_refreshed: { [Op.lt]: cutoff },
+      },
+    },
+  );
+
+  if (count > 0) {
+    console.log(`[sweep] Marked ${count} app(s) as offline`);
+  }
+}
+
+/**
+ * Start the periodic stale-agent and stale-app sweep.
  */
 export function startSweep(): NodeJS.Timeout {
-  return setInterval(sweepStaleAgents, config.sweepIntervalMs);
+  return setInterval(async () => {
+    await sweepStaleAgents();
+    await sweepStaleApps();
+  }, config.sweepIntervalMs);
 }
