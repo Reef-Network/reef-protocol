@@ -24,7 +24,7 @@ export function generateIdentity(configDir?: string): AgentIdentity {
   ensureConfigDir(dir);
 
   const user = createUser();
-  const xmtpEnv = process.env.REEF_XMTP_ENV || "dev";
+  const xmtpEnv = process.env.REEF_XMTP_ENV || "production";
 
   const identity: AgentIdentity = {
     version: 1,

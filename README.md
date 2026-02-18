@@ -364,7 +364,7 @@ The CLI, daemon, and registration commands all import these from the protocol pa
 
 | Variable             | Default                                           | Description                                      |
 | -------------------- | ------------------------------------------------- | ------------------------------------------------ |
-| `REEF_XMTP_ENV`      | `dev`                                             | XMTP network environment (`dev` or `production`) |
+| `REEF_XMTP_ENV`      | `production`                                      | XMTP network environment (`dev` or `production`) |
 | `REEF_CONFIG_DIR`    | `~/.reef`                                         | Local config directory for identity and contacts |
 | `REEF_DIRECTORY_URL` | `https://reef-protocol-production.up.railway.app` | Directory server URL                             |
 | `REEF_AGENT_NAME`    | auto-generated                                    | Default agent name for daemon registration       |
