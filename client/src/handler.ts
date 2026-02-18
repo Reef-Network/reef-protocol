@@ -1,6 +1,7 @@
 /** A2A JSON-RPC request handler over XMTP */
 
 import type { Agent } from "@xmtp/agent-sdk";
+import type { Conversation } from "@xmtp/node-sdk";
 import type { Message, Task, TaskState } from "@a2a-js/sdk";
 import type { TaskStore } from "@a2a-js/sdk/server";
 import {
@@ -43,6 +44,7 @@ export async function handleA2AMessage(
   taskStore: TaskStore,
   logicHandler: AgentLogicHandler,
   onTaskOutcome?: TaskOutcomeCallback,
+  conversation?: Conversation,
 ): Promise<void> {
   const decoded = decodeA2AMessage(raw);
 
@@ -77,6 +79,7 @@ export async function handleA2AMessage(
             requestId,
             -32602,
             "Invalid params: missing message",
+            conversation,
           );
           return;
         }
@@ -105,7 +108,13 @@ export async function handleA2AMessage(
           }
         }
 
-        await sendSuccessResponse(agent, fromAddress, requestId, result);
+        await sendSuccessResponse(
+          agent,
+          fromAddress,
+          requestId,
+          result,
+          conversation,
+        );
         break;
       }
 
@@ -118,6 +127,7 @@ export async function handleA2AMessage(
             requestId,
             -32602,
             "Invalid params: missing task id",
+            conversation,
           );
           return;
         }
@@ -130,11 +140,18 @@ export async function handleA2AMessage(
             requestId,
             -32001,
             "Task not found",
+            conversation,
           );
           return;
         }
 
-        await sendSuccessResponse(agent, fromAddress, requestId, task);
+        await sendSuccessResponse(
+          agent,
+          fromAddress,
+          requestId,
+          task,
+          conversation,
+        );
         break;
       }
 
@@ -147,6 +164,7 @@ export async function handleA2AMessage(
             requestId,
             -32602,
             "Invalid params: missing task id",
+            conversation,
           );
           return;
         }
@@ -158,6 +176,7 @@ export async function handleA2AMessage(
             requestId,
             -32004,
             "Cancel not supported",
+            conversation,
           );
           return;
         }
@@ -172,7 +191,13 @@ export async function handleA2AMessage(
           onTaskOutcome(canceledTask.status.state as TaskState, fromAddress);
         }
 
-        await sendSuccessResponse(agent, fromAddress, requestId, canceledTask);
+        await sendSuccessResponse(
+          agent,
+          fromAddress,
+          requestId,
+          canceledTask,
+          conversation,
+        );
         break;
       }
 
@@ -183,6 +208,7 @@ export async function handleA2AMessage(
           requestId,
           -32601,
           `Method not found: ${method}`,
+          conversation,
         );
         break;
       }
@@ -195,7 +221,22 @@ export async function handleA2AMessage(
       requestId,
       -32603,
       `Internal error: ${(err as Error).message}`,
+      conversation,
     );
+  }
+}
+
+async function sendToConversation(
+  agent: Agent,
+  toAddress: string,
+  text: string,
+  conversation?: Conversation,
+): Promise<void> {
+  if (conversation) {
+    await conversation.sendText(text);
+  } else {
+    const dm = await agent.createDmWithAddress(toAddress as HexAddress);
+    await dm.sendText(text);
   }
 }
 
@@ -204,14 +245,14 @@ async function sendSuccessResponse(
   toAddress: string,
   id: string | number | null,
   result: unknown,
+  conversation?: Conversation,
 ): Promise<void> {
   const response = encodeA2AMessage({
     jsonrpc: "2.0",
     id,
     result,
   });
-  const dm = await agent.createDmWithAddress(toAddress as HexAddress);
-  await dm.sendText(response);
+  await sendToConversation(agent, toAddress, response, conversation);
 }
 
 async function sendErrorResponse(
@@ -220,12 +261,12 @@ async function sendErrorResponse(
   id: string | number | null,
   code: number,
   message: string,
+  conversation?: Conversation,
 ): Promise<void> {
   const response = encodeA2AMessage({
     jsonrpc: "2.0",
     id,
     error: { code, message },
   });
-  const dm = await agent.createDmWithAddress(toAddress as HexAddress);
-  await dm.sendText(response);
+  await sendToConversation(agent, toAddress, response, conversation);
 }

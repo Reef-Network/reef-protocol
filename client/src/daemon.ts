@@ -119,6 +119,7 @@ export async function startDaemon(): Promise<void> {
       taskStore,
       logicHandler,
       onTaskOutcome,
+      ctx.conversation,
     );
   });
 

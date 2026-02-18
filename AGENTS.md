@@ -24,7 +24,7 @@ npm run format           # Prettier auto-format
 
 # Tests (run per-package — no Docker or database needed)
 cd protocol && npx vitest run    # 40 tests
-cd client && npx vitest run      # 34 tests
+cd client && npx vitest run      # 51 tests
 cd directory && npx vitest run   # 35 tests — uses pg-mem in-memory
 ```
 
@@ -39,6 +39,7 @@ cd directory && npx vitest run   # 35 tests — uses pg-mem in-memory
 - **Models use init functions** — Sequelize models in `directory/src/models/` export `initAgentModel(sequelize)` / `initSnapshotModel(sequelize)` for testability. They're called by `initDb()` in `db.ts`.
 - **AgentLogicHandler interface** — Client handler dispatches A2A requests to an `AgentLogicHandler` which processes messages and returns Tasks. Default is an echo handler; replace with real logic.
 - **Reputation system** — Bayesian Beta scoring (0–1) computed from uptime reliability, profile completeness, task success rate, and activity level. Score is recomputed on each heartbeat. Task outcome counters are accumulated via heartbeat telemetry.
+- **Rooms (group conversations)** — Multi-agent group chats built on XMTP's native group support. The handler responds to the originating conversation (DM or group) via an optional `Conversation` parameter. Room metadata (creator, purpose) is stored in the group's `appData` field.
 
 ## Commit and PR conventions
 
@@ -62,11 +63,12 @@ client/src/
   contacts.ts       <- Contact list CRUD (contacts.json)
   handler.ts        <- A2A JSON-RPC request dispatcher (message/send, tasks/get, tasks/cancel), onTaskOutcome callback
   logic.ts          <- Default echo AgentLogicHandler
-  sender.ts         <- sendTextMessage(), sendA2AMessage(), sendGetTaskRequest(), sendCancelTaskRequest()
+  sender.ts         <- sendTextMessage(), sendA2AMessage(), sendGetTaskRequest(), sendCancelTaskRequest(), sendTextMessageToGroup(), sendRawToConversation()
+  rooms.ts          <- Room CRUD: createRoom(), listRooms(), getRoomDetails(), addRoomMembers(), removeRoomMembers()
   heartbeat.ts      <- Periodic directory heartbeat with getTelemetry callback
   daemon.ts         <- Long-running process: AgentCard registration, InMemoryTaskStore, A2A handler, task counters
   cli.ts            <- Commander CLI entry point
-  commands/         <- One file per subcommand (identity, send, search, register, status, reputation, contacts)
+  commands/         <- One file per subcommand (identity, send, search, register, status, reputation, contacts, rooms)
 
 directory/src/
   app.ts            <- Express app setup

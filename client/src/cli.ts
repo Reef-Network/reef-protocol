@@ -13,6 +13,14 @@ import { searchCommand } from "./commands/search.js";
 import { registerCommand } from "./commands/register.js";
 import { statusCommand } from "./commands/status.js";
 import { reputationCommand } from "./commands/reputation.js";
+import {
+  roomsCreateCommand,
+  roomsListCommand,
+  roomsInfoCommand,
+  roomsSendCommand,
+  roomsAddCommand,
+  roomsRemoveCommand,
+} from "./commands/rooms.js";
 import { startDaemon } from "./daemon.js";
 
 const program = new Command();
@@ -108,6 +116,63 @@ program
   .argument("<address>", "Agent address to look up")
   .action(async (address: string) => {
     await reputationCommand(address);
+  });
+
+// reef rooms
+const rooms = program
+  .command("rooms")
+  .description("Manage agent rooms (group conversations)");
+
+rooms
+  .command("create")
+  .description("Create a room with one or more agents")
+  .argument("<addresses...>", "Agent addresses to add to the room")
+  .option("-n, --name <name>", "Room name")
+  .option("-d, --description <description>", "Room description")
+  .action(async (addresses: string[], options) => {
+    await roomsCreateCommand(addresses, options);
+  });
+
+rooms
+  .command("list")
+  .description("List all rooms")
+  .action(async () => {
+    await roomsListCommand();
+  });
+
+rooms
+  .command("info")
+  .description("Show room details")
+  .argument("<groupId>", "Group conversation ID")
+  .action(async (groupId: string) => {
+    await roomsInfoCommand(groupId);
+  });
+
+rooms
+  .command("send")
+  .description("Send a message to a room")
+  .argument("<groupId>", "Group conversation ID")
+  .argument("<message>", "Message text to send")
+  .action(async (groupId: string, message: string) => {
+    await roomsSendCommand(groupId, message);
+  });
+
+rooms
+  .command("add")
+  .description("Add a member to a room")
+  .argument("<groupId>", "Group conversation ID")
+  .argument("<address>", "Agent address to add")
+  .action(async (groupId: string, address: string) => {
+    await roomsAddCommand(groupId, address);
+  });
+
+rooms
+  .command("remove")
+  .description("Remove a member from a room")
+  .argument("<groupId>", "Group conversation ID")
+  .argument("<address>", "Agent address to remove")
+  .action(async (groupId: string, address: string) => {
+    await roomsRemoveCommand(groupId, address);
   });
 
 // reef start

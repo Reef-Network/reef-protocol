@@ -4,6 +4,8 @@ import {
   sendTextMessage,
   sendGetTaskRequest,
   sendCancelTaskRequest,
+  sendTextMessageToGroup,
+  sendRawToConversation,
 } from "../sender.js";
 
 function createMockAgent() {
@@ -72,5 +74,69 @@ describe("sendCancelTaskRequest", () => {
     expect(parsed.jsonrpc).toBe("2.0");
     expect(parsed.method).toBe("tasks/cancel");
     expect(parsed.params.id).toBe("task-99");
+  });
+});
+
+describe("sendTextMessageToGroup", () => {
+  it("sends a message/send request to a group conversation", async () => {
+    const groupMessages: string[] = [];
+    const mockGroup = {
+      sendText: vi.fn(async (text: string) => {
+        groupMessages.push(text);
+      }),
+    };
+
+    const agent = {
+      client: {
+        conversations: {
+          getConversationById: vi.fn(async () => mockGroup),
+        },
+      },
+    } as unknown as Agent;
+
+    await sendTextMessageToGroup(agent, "group-1", "Hello group!");
+
+    expect(groupMessages).toHaveLength(1);
+    const parsed = JSON.parse(groupMessages[0]);
+    expect(parsed.jsonrpc).toBe("2.0");
+    expect(parsed.method).toBe("message/send");
+    expect(parsed.params.message.parts[0].text).toBe("Hello group!");
+  });
+
+  it("throws if group not found", async () => {
+    const agent = {
+      client: {
+        conversations: {
+          getConversationById: vi.fn(async () => undefined),
+        },
+      },
+    } as unknown as Agent;
+
+    await expect(
+      sendTextMessageToGroup(agent, "nonexistent", "Hello"),
+    ).rejects.toThrow("Group not found");
+  });
+});
+
+describe("sendRawToConversation", () => {
+  it("sends encoded payload to any conversation", async () => {
+    const messages: string[] = [];
+    const mockConversation = {
+      sendText: vi.fn(async (text: string) => {
+        messages.push(text);
+      }),
+    };
+
+    await sendRawToConversation(mockConversation as never, {
+      jsonrpc: "2.0",
+      id: "test-1",
+      method: "tasks/get",
+      params: { id: "t1" },
+    });
+
+    expect(messages).toHaveLength(1);
+    const parsed = JSON.parse(messages[0]);
+    expect(parsed.jsonrpc).toBe("2.0");
+    expect(parsed.method).toBe("tasks/get");
   });
 });

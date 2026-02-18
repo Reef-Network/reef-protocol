@@ -365,4 +365,77 @@ describe("handleA2AMessage", () => {
 
     expect(mockAgent.sentMessages).toHaveLength(1);
   });
+
+  it("responds to provided conversation instead of creating DM", async () => {
+    const conversationMessages: string[] = [];
+    const mockConversation = {
+      sendText: vi.fn(async (text: string) => {
+        conversationMessages.push(text);
+      }),
+    };
+
+    const raw = encodeA2AMessage({
+      jsonrpc: "2.0",
+      id: "req-conv-1",
+      method: "message/send",
+      params: {
+        message: {
+          kind: "message",
+          messageId: "msg-conv-1",
+          role: "user",
+          parts: [{ kind: "text", text: "Hello group" }],
+        },
+      },
+    });
+
+    await handleA2AMessage(
+      raw,
+      "0xSender",
+      mockAgent.agent,
+      mockTaskStore.store,
+      logicHandler,
+      undefined,
+      mockConversation as never,
+    );
+
+    // Should have sent response to the conversation, not via DM
+    expect(conversationMessages).toHaveLength(1);
+    const response = JSON.parse(conversationMessages[0]);
+    expect(response.jsonrpc).toBe("2.0");
+    expect(response.id).toBe("req-conv-1");
+    expect(response.result.kind).toBe("task");
+
+    // Should NOT have created a DM
+    expect(mockAgent.agent.createDmWithAddress).not.toHaveBeenCalled();
+  });
+
+  it("falls back to DM when no conversation is provided", async () => {
+    const raw = encodeA2AMessage({
+      jsonrpc: "2.0",
+      id: "req-dm-fallback",
+      method: "message/send",
+      params: {
+        message: {
+          kind: "message",
+          messageId: "msg-dm-fallback",
+          role: "user",
+          parts: [{ kind: "text", text: "Hello DM" }],
+        },
+      },
+    });
+
+    await handleA2AMessage(
+      raw,
+      "0xSender",
+      mockAgent.agent,
+      mockTaskStore.store,
+      logicHandler,
+    );
+
+    // Should have created a DM and sent via it
+    expect(mockAgent.agent.createDmWithAddress).toHaveBeenCalledWith(
+      "0xSender",
+    );
+    expect(mockAgent.sentMessages).toHaveLength(1);
+  });
 });
