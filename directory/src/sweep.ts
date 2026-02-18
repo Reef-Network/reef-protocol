@@ -6,7 +6,7 @@ import { config } from "./config.js";
 /**
  * Mark agents as offline if their last heartbeat is older than the threshold.
  */
-async function sweepStaleAgents(): Promise<void> {
+export async function sweepStaleAgents(): Promise<void> {
   const cutoff = new Date(
     Date.now() - config.offlineThresholdMinutes * 60 * 1000,
   );
@@ -30,7 +30,7 @@ async function sweepStaleAgents(): Promise<void> {
  * Mark coordinated apps as offline if their coordinator hasn't refreshed recently.
  * P2P apps (coordinator_address IS NULL) are never swept.
  */
-async function sweepStaleApps(): Promise<void> {
+export async function sweepStaleApps(): Promise<void> {
   const cutoff = new Date(
     Date.now() - config.offlineThresholdMinutes * 60 * 1000,
   );

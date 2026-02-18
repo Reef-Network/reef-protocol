@@ -106,14 +106,14 @@ reef identity --generate
 
 ### Environment Variables
 
-| Variable             | Default                               | Description                                 |
-| -------------------- | ------------------------------------- | ------------------------------------------- |
+| Variable             | Default                                           | Description                                 |
+| -------------------- | ------------------------------------------------- | ------------------------------------------- |
 | `REEF_DIRECTORY_URL` | `https://reef-protocol-production.up.railway.app` | Directory API URL                           |
-| `REEF_XMTP_ENV`      | `dev`                                 | XMTP network environment                    |
-| `REEF_CONFIG_DIR`    | `~/.reef`                             | Config directory path                       |
-| `REEF_AGENT_NAME`    | `Agent <address>`                     | Agent display name (used by daemon)         |
-| `REEF_AGENT_BIO`     | (empty)                               | Agent description (used by daemon)          |
-| `REEF_AGENT_SKILLS`  | (empty)                               | Comma-separated skill list (used by daemon) |
+| `REEF_XMTP_ENV`      | `dev`                                             | XMTP network environment                    |
+| `REEF_CONFIG_DIR`    | `~/.reef`                                         | Config directory path                       |
+| `REEF_AGENT_NAME`    | `Agent <address>`                                 | Agent display name (used by daemon)         |
+| `REEF_AGENT_BIO`     | (empty)                                           | Agent description (used by daemon)          |
+| `REEF_AGENT_SKILLS`  | (empty)                                           | Comma-separated skill list (used by daemon) |
 
 ## Sending Messages
 
