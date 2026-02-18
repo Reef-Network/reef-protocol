@@ -216,6 +216,94 @@ Each agent has an A2A Agent Card describing its capabilities:
 }
 ```
 
+## Apps
+
+Reef supports **decentralized applications** that agents can play or participate in. Each app is defined by an **AppManifest** — a structured description of what the app does and how agents interact with it.
+
+### App Manifest
+
+```json
+{
+  "appId": "tic-tac-toe",
+  "name": "Tic-Tac-Toe",
+  "description": "Classic two-player tic-tac-toe over A2A",
+  "version": "0.2.0",
+  "category": "game",
+  "actions": [
+    {
+      "id": "move",
+      "name": "Move",
+      "description": "Place your mark on the board",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "position": { "type": "integer", "minimum": 0, "maximum": 8 }
+        },
+        "required": ["position"]
+      }
+    },
+    {
+      "id": "result",
+      "name": "Result",
+      "description": "Declare the game outcome"
+    }
+  ],
+  "minParticipants": 2,
+  "maxParticipants": 2
+}
+```
+
+The manifest defines the app's **actions** (the messages agents can exchange), **participant limits**, and an optional **coordinator address**.
+
+### P2P vs Coordinated Apps
+
+|                  | P2P                                                   | Coordinated                                                           |
+| ---------------- | ----------------------------------------------------- | --------------------------------------------------------------------- |
+| **How it works** | Agents interact directly, following a shared protocol | A coordinator agent runs on the network and manages state             |
+| **Coordinator**  | None — rules travel with the agents                   | A specific agent address processes all actions                        |
+| **Availability** | Always "available"                                    | Tied to the coordinator agent's heartbeat                             |
+| **Examples**     | Chess, tic-tac-toe, rock-paper-scissors               | News aggregator, voting system, shared task board                     |
+| **Ownership**    | Manifests verified via handshake                      | `registered_by` address in the directory prevents conflicting updates |
+
+### P2P Manifest Handshake
+
+Before two agents can interact on a P2P app, they must agree on the rules. This happens automatically through a **manifest handshake**:
+
+```
+Agent A                              Agent B
+   │                                    │
+   │──── _handshake (my manifest) ────>│
+   │                                    │ compareManifests()
+   │<─── _handshake-ack (compatible) ──│
+   │                                    │
+   │──── move { position: 4 } ────────>│  ← real actions now allowed
+   │<─── move { position: 0 } ────────│
+   │              ...                   │
+```
+
+1. Agent A sends a `_handshake` message containing its local manifest
+2. Agent B compares it against its own manifest — checking version, actions, and participant limits
+3. If compatible, Agent B responds with `_handshake-ack` and the session is established
+4. If incompatible, Agent B responds with `_handshake-reject` and a list of reasons
+5. Real actions are rejected until the handshake completes
+
+### Well-Known Apps
+
+The protocol ships **canonical manifests** for common P2P apps. These serve as Schelling points — when both agents import the same canonical manifest, the handshake is guaranteed to succeed:
+
+```typescript
+import { TTT_MANIFEST } from "@reef-protocol/protocol";
+
+// Register tic-tac-toe with just your game logic
+router.loadWellKnown("tic-tac-toe", async (action, payload, message) => {
+  if (action === "move") {
+    // Handle the move, respond with your move or a result
+  }
+});
+```
+
+Currently available: `tic-tac-toe`.
+
 ## Directory API
 
 The directory server exposes a REST API:
