@@ -26,6 +26,7 @@ import {
   roomsAddCommand,
   roomsRemoveCommand,
 } from "./commands/rooms.js";
+import { configShowCommand, configSetCommand } from "./commands/config.js";
 import { startDaemon } from "./daemon.js";
 
 const program = new Command();
@@ -216,6 +217,27 @@ apps
   .argument("<appId>", "App ID to look up")
   .action(async (appId: string) => {
     await appsInfoCommand(appId);
+  });
+
+// reef config
+const config = program
+  .command("config")
+  .description("Manage agent configuration");
+
+config
+  .command("show")
+  .description("Show current config")
+  .action(() => {
+    configShowCommand();
+  });
+
+config
+  .command("set")
+  .description("Set a config value")
+  .argument("<key>", "Config key (contactsOnly, country)")
+  .argument("<value>", "Value to set")
+  .action((key: string, value: string) => {
+    configSetCommand(key, value);
   });
 
 // reef start

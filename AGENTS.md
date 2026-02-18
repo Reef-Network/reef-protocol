@@ -23,9 +23,9 @@ npm run format:check     # Prettier check
 npm run format           # Prettier auto-format
 
 # Tests (run per-package — no Docker or database needed)
-cd protocol && npx vitest run    # 74 tests
-cd client && npx vitest run      # 66 tests
-cd directory && npx vitest run   # 59 tests — uses pg-mem in-memory
+cd protocol && npx vitest run    # 76 tests
+cd client && npx vitest run      # 70 tests
+cd directory && npx vitest run   # 61 tests — uses pg-mem in-memory
 ```
 
 ## Key conventions
@@ -45,6 +45,9 @@ cd directory && npx vitest run   # 59 tests — uses pg-mem in-memory
 - **App-aware routing (AppRouter)** — Optional client-side router that maps `appId` → `AppHandler`. Inspects DataParts in A2A messages for `appId`/`action` fields and dispatches to the matching handler. Falls through to the default `AgentLogicHandler` for non-app messages.
 - **P2P manifest handshake** — Before two agents interact on a P2P app, they exchange manifests via reserved `_handshake` / `_handshake-ack` / `_handshake-reject` actions. `compareManifests()` verifies compatibility (version, actions, participants). Real actions are rejected until the handshake completes. Sessions are tracked per `appId:peerAddress`.
 - **Well-known apps** — Canonical P2P app manifests shipped in the protocol package as Schelling points. Agents import them (e.g., `TTT_MANIFEST`) to guarantee handshake compatibility. `AppRouter.loadWellKnown(appId, handler)` registers a canonical app with just the game logic. Currently includes: tic-tac-toe.
+- **Agent config** — `~/.reef/config.json` stores per-agent settings. `loadConfig()` / `saveConfig()` in `client/src/config.ts`. CLI: `reef config show`, `reef config set <key> <value>`.
+- **Contacts-only mode** — `contactsOnly: true` in config filters inbound messages so only addresses in the agent's contact list get through. Default: `false` (open to all). Checked in daemon before message handler.
+- **Country telemetry** — `country` field (ISO 3166-1 alpha-2) in config, sent via heartbeat telemetry, stored on the Agent model. Surfaced in profile and search responses.
 
 ## Commit and PR conventions
 
@@ -66,6 +69,7 @@ protocol/src/
 client/src/
   identity.ts       <- Keypair generation, loads from ~/.reef/
   agent.ts          <- XMTP Agent wrapper
+  config.ts         <- ReefConfig load/save (config.json): contactsOnly, country
   contacts.ts       <- Contact list CRUD (contacts.json)
   handler.ts        <- A2A JSON-RPC request dispatcher (message/send, tasks/get, tasks/cancel), onTaskOutcome callback, optional AppRouter integration
   logic.ts          <- Default echo AgentLogicHandler
@@ -75,7 +79,7 @@ client/src/
   heartbeat.ts      <- Periodic directory heartbeat with getTelemetry callback
   daemon.ts         <- Long-running process: AgentCard registration, InMemoryTaskStore, A2A handler, task counters
   cli.ts            <- Commander CLI entry point
-  commands/         <- One file per subcommand (identity, send, search, register, status, reputation, contacts, rooms, apps)
+  commands/         <- One file per subcommand (identity, send, search, register, status, reputation, contacts, rooms, apps, config)
 
 directory/src/
   app.ts            <- Express app setup
@@ -86,7 +90,7 @@ directory/src/
   models/           <- Agent, App (with reputation columns), Snapshot (with init functions)
   routes/           <- agents.ts (register/search/heartbeat/reputation), apps.ts (register/search/info/reputation), stats.ts
   middleware/       <- Rate limiting
-  migrations/       <- Umzug migrations (00001–00006, including apps table + registered_by)
+  migrations/       <- Umzug migrations (00001–00007, including apps + registered_by + country)
 ```
 
 ## Gotchas

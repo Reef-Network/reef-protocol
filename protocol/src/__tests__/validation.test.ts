@@ -289,6 +289,23 @@ describe("heartbeatPayloadSchema", () => {
   it("rejects missing address", () => {
     expect(() => heartbeatPayloadSchema.parse({})).toThrow();
   });
+
+  it("validates a heartbeat with country", () => {
+    const result = heartbeatPayloadSchema.parse({
+      address: "0xabc",
+      telemetry: { country: "no" },
+    });
+    expect(result.telemetry?.country).toBe("NO");
+  });
+
+  it("rejects country with wrong length", () => {
+    expect(() =>
+      heartbeatPayloadSchema.parse({
+        address: "0xabc",
+        telemetry: { country: "NOR" },
+      }),
+    ).toThrow();
+  });
 });
 
 describe("contactSchema", () => {

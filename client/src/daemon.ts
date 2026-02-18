@@ -8,6 +8,8 @@ import { handleA2AMessage } from "./handler.js";
 import { createDefaultLogicHandler } from "./logic.js";
 import { AppRouter } from "./app-router.js";
 import { startHeartbeat } from "./heartbeat.js";
+import { loadConfig } from "./config.js";
+import { isContact } from "./contacts.js";
 import type { MessageContext } from "@xmtp/agent-sdk";
 
 const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || "http://localhost:3000";
@@ -85,6 +87,15 @@ export async function startDaemon(): Promise<void> {
     }
   };
 
+  // Load agent config
+  const agentConfig = loadConfig(configDir);
+  if (agentConfig.contactsOnly) {
+    console.log(`[reef] Contacts-only mode enabled`);
+  }
+  if (agentConfig.country) {
+    console.log(`[reef] Country: ${agentConfig.country}`);
+  }
+
   // Start heartbeat with dynamic telemetry
   const stopHeartbeat = startHeartbeat(DIRECTORY_URL, identity, {
     getTelemetry: () => {
@@ -92,6 +103,7 @@ export async function startDaemon(): Promise<void> {
       const snapshot = {
         tasksCompleted: taskCounters.completed,
         tasksFailed: taskCounters.failed,
+        country: agentConfig.country,
       };
       taskCounters.completed = 0;
       taskCounters.failed = 0;
@@ -113,6 +125,11 @@ export async function startDaemon(): Promise<void> {
     if (!sender) return;
     // Skip messages from self
     if (sender === agent.address) return;
+    // Contacts-only filtering
+    if (agentConfig.contactsOnly && !isContact(sender, configDir)) {
+      console.log(`[reef] Blocked message from non-contact: ${sender}`);
+      return;
+    }
 
     await handleA2AMessage(
       content,

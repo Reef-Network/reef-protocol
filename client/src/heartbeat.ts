@@ -8,6 +8,7 @@ export interface TelemetryData {
   uptime?: number;
   tasksCompleted?: number;
   tasksFailed?: number;
+  country?: string;
 }
 
 export interface HeartbeatOptions {
