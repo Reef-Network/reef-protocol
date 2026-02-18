@@ -1,9 +1,9 @@
 import rateLimit from "express-rate-limit";
 
-/** Rate limiter for registration: 10 requests per hour per IP */
+/** Rate limiter for registration: 60 requests per minute per IP */
 export const registrationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 10,
+  windowMs: 60 * 1000,
+  max: 60,
   message: { error: "Too many registrations. Try again later." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -18,10 +18,10 @@ export const searchLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-/** Rate limiter for heartbeat: 10 requests per minute per IP */
+/** Rate limiter for heartbeat: 60 requests per minute per IP */
 export const heartbeatLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: 60,
   message: { error: "Too many heartbeat requests. Try again later." },
   standardHeaders: true,
   legacyHeaders: false,
