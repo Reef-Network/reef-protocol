@@ -30,6 +30,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
 
   cron:
     build:
@@ -40,7 +45,7 @@ services:
       DATABASE_URL: postgres://reef:reef@postgres:5432/reef
       NODE_ENV: production
     depends_on:
-      postgres:
+      directory:
         condition: service_healthy
     restart: unless-stopped
 

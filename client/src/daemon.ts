@@ -158,8 +158,13 @@ export async function startDaemon(): Promise<void> {
   process.on("SIGTERM", shutdown);
 }
 
-// Run if executed directly
-startDaemon().catch((err) => {
-  console.error("[reef] Fatal:", err);
-  process.exit(1);
-});
+// Run if executed directly (not when imported by cli.ts)
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] === __filename) {
+  startDaemon().catch((err) => {
+    console.error("[reef] Fatal:", err);
+    process.exit(1);
+  });
+}
