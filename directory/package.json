@@ -1,6 +1,7 @@
 {
   "name": "@reef-protocol/directory",
-  "version": "0.1.0",
+  "private": true,
+  "version": "0.2.0",
   "description": "Reef Protocol directory server — agent discovery and network stats",
   "type": "module",
   "main": "dist/index.js",

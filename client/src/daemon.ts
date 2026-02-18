@@ -14,6 +14,8 @@ import {
 import { createReefAgent } from "./agent.js";
 import { handleA2AMessage } from "./handler.js";
 import { createDefaultLogicHandler } from "./logic.js";
+import { decodeA2AMessage, isA2ARequest } from "@reef-protocol/protocol";
+import { appendMessage } from "./messages.js";
 import { AppRouter } from "./app-router.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { loadConfig } from "./config.js";
@@ -147,6 +149,19 @@ export async function startDaemon(): Promise<void> {
       return;
     }
 
+    // Save to inbox
+    const decoded = decodeA2AMessage(content);
+    appendMessage(
+      {
+        id: crypto.randomUUID(),
+        from: sender,
+        text: content,
+        method: decoded && isA2ARequest(decoded) ? decoded.method : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      configDir,
+    );
+
     await handleA2AMessage(
       content,
       sender,
@@ -159,7 +174,12 @@ export async function startDaemon(): Promise<void> {
     );
   });
 
-  await agent.start();
+  // Accept all consent states: 0=Unknown, 1=Allowed, 2=Denied
+  // The XMTP SDK types for AgentStreamingOptions are narrower than what
+  // streamAllMessages actually accepts, so we cast to pass consentStates.
+  await agent.start({ consentStates: [0, 1, 2] } as Parameters<
+    typeof agent.start
+  >[0]);
   console.log(`[reef] Daemon running. Listening for A2A messages...`);
 
   // Graceful shutdown

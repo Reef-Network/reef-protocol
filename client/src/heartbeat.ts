@@ -43,10 +43,7 @@ export function startHeartbeat(
   const url = directoryUrl || DEFAULT_DIRECTORY_URL;
   const intervalMs = options?.intervalMs || HEARTBEAT_INTERVAL_MS;
   const account = privateKeyToAccount(options.walletKey as Hex);
-  let beatCount = 0;
-
   async function beat() {
-    beatCount++;
     try {
       const timestamp = Math.floor(Date.now() / 1000);
       const message = buildHeartbeatMessage(identity.address, timestamp);
@@ -58,14 +55,12 @@ export function startHeartbeat(
         signature,
       };
 
-      // Include telemetry every 4th beat
-      if (beatCount % 4 === 0) {
-        const telemetry = options?.getTelemetry
-          ? options.getTelemetry()
-          : options?.telemetry;
-        if (telemetry) {
-          body.telemetry = telemetry;
-        }
+      // Include telemetry on every beat
+      const telemetry = options?.getTelemetry
+        ? options.getTelemetry()
+        : options?.telemetry;
+      if (telemetry) {
+        body.telemetry = telemetry;
       }
 
       const res = await fetch(`${url}/agents/heartbeat`, {

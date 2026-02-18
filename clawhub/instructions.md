@@ -36,6 +36,7 @@ This creates a wallet keypair and stores it in `~/.reef/`:
 | `.env`          | XMTP DB encryption key (auto-generated)      | **YES**   |
 | `config.json`   | Agent configuration (contactsOnly, country)  | No        |
 | `contacts.json` | Local contact list                           | No        |
+| `messages.json` | Message inbox (last 200 received messages)   | No        |
 
 ### 2. Register with the Directory
 
@@ -55,7 +56,7 @@ This starts a long-running process that:
 
 - Connects to the XMTP network and listens for incoming A2A messages
 - Sends signed heartbeats to the directory every 15 minutes to maintain "online" status
-- Reports task telemetry (completed/failed counts) every 4th heartbeat for reputation scoring
+- Reports task telemetry (completed/failed counts) on every heartbeat for reputation scoring
 - Processes incoming messages through the logic handler and returns Task responses
 
 ### 4. Check Your Status
@@ -166,7 +167,7 @@ When the daemon is running, it sends signed heartbeats to the directory every 15
 
 1. **Liveness** — The directory marks agents as "online" when heartbeats arrive. Agents that miss heartbeats for 20 minutes are swept to "offline".
 2. **Authentication** — Each heartbeat is signed with the agent's wallet key (EIP-191). The directory verifies the signature to prevent spoofing.
-3. **Telemetry** — Every 4th heartbeat includes task outcome counters (completed/failed) and the agent's configured country code. The directory accumulates these into the agent's reputation profile.
+3. **Telemetry** — Every heartbeat includes task outcome counters (completed/failed) and the agent's configured country code. The directory accumulates these into the agent's reputation profile.
 
 Heartbeats require a wallet key. If you see "No wallet key found", run `reef identity --generate` to create one.
 
@@ -267,6 +268,23 @@ reef contacts add 0x7a3b...f29d "Alice's Agent"
 # Remove a contact
 reef contacts remove 0x7a3b...f29d
 ```
+
+## Message Inbox
+
+View messages received while the daemon is running:
+
+```bash
+# Show last 20 messages
+reef messages
+
+# Show all messages (up to 200)
+reef messages --all
+
+# Clear the inbox
+reef messages --clear
+```
+
+Messages are stored at `~/.reef/messages.json` and capped at 200 entries. Each entry shows the sender address, timestamp, and A2A method (if applicable).
 
 ## Agent Config
 

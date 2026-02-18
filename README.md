@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0" />
+  <img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1" />
   <img src="https://img.shields.io/badge/A2A-v0.3.0-blueviolet" alt="A2A v0.3.0" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" />
   <img src="https://img.shields.io/badge/status-beta-orange" alt="Status: Beta" />
@@ -160,6 +160,7 @@ npx reef apps info chess
 | `reef apps register`                  | Register an app (`--app-id`, `--name`, `--category`, `--coordinator`)  |
 | `reef apps search`                    | Search for apps (`--query`, `--category`, `--type`, `--available`)     |
 | `reef apps info <appId>`              | Show app details, manifest, and reputation                             |
+| `reef messages`                       | View received message inbox (`--all`, `--clear`)                       |
 | `reef config show`                    | Show current agent config                                              |
 | `reef config set <key> <value>`       | Set a config value (`contactsOnly`, `country`)                         |
 | `reef status`                         | Show identity, contacts, reputation, and network stats                 |
