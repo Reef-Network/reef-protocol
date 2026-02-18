@@ -1,7 +1,7 @@
 import { buildReefAgentCard, buildSkill } from "@reef-protocol/protocol";
 import { getOrCreateIdentity, getConfigDir } from "../identity.js";
 
-const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
+import { DEFAULT_DIRECTORY_URL } from "@reef-protocol/protocol";
 
 interface RegisterOptions {
   name?: string;

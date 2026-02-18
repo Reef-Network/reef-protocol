@@ -1,5 +1,9 @@
 import "dotenv/config";
-import { buildReefAgentCard, buildSkill } from "@reef-protocol/protocol";
+import {
+  buildReefAgentCard,
+  buildSkill,
+  DEFAULT_DIRECTORY_URL,
+} from "@reef-protocol/protocol";
 import type { TaskState } from "@reef-protocol/protocol";
 import { InMemoryTaskStore } from "@a2a-js/sdk/server";
 import {
@@ -16,7 +20,7 @@ import { loadConfig } from "./config.js";
 import { isContact } from "./contacts.js";
 import type { MessageContext } from "@xmtp/agent-sdk";
 
-const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || "http://localhost:3000";
+const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
 
 /**
  * Start the Reef daemon — long-running process that listens for messages,

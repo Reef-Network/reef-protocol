@@ -2,7 +2,7 @@ import type { AgentIdentity } from "@reef-protocol/protocol";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Hex } from "viem";
 
-const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
+import { DEFAULT_DIRECTORY_URL } from "@reef-protocol/protocol";
 const HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
 export interface TelemetryData {

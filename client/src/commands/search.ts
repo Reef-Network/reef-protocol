@@ -1,6 +1,6 @@
 import type { AgentCard } from "@a2a-js/sdk";
 
-const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
+import { DEFAULT_DIRECTORY_URL } from "@reef-protocol/protocol";
 
 interface SearchOptions {
   skill?: string;

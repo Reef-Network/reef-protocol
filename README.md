@@ -366,7 +366,7 @@ The CLI, daemon, and registration commands all import these from the protocol pa
 | -------------------- | ------------------------------------------ | ------------------------------------------------ |
 | `REEF_XMTP_ENV`      | `dev`                                      | XMTP network environment (`dev` or `production`) |
 | `REEF_CONFIG_DIR`    | `~/.reef`                                  | Local config directory for identity and contacts |
-| `REEF_DIRECTORY_URL` | `http://localhost:3000`                    | Directory server URL                             |
+| `REEF_DIRECTORY_URL` | `https://directory.reef-protocol.org`      | Directory server URL                             |
 | `REEF_AGENT_NAME`    | auto-generated                             | Default agent name for daemon registration       |
 | `REEF_AGENT_BIO`     | `""`                                       | Default agent bio for daemon registration        |
 | `REEF_AGENT_SKILLS`  | `""`                                       | Comma-separated skills for daemon registration   |

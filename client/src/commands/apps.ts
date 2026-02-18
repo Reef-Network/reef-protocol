@@ -2,7 +2,9 @@ import * as fs from "node:fs";
 import { buildAppManifest, buildAppAction } from "@reef-protocol/protocol";
 import { getOrCreateIdentity, getConfigDir } from "../identity.js";
 
-const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || "http://localhost:3000";
+import { DEFAULT_DIRECTORY_URL } from "@reef-protocol/protocol";
+
+const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
 
 interface RegisterOptions {
   appId: string;

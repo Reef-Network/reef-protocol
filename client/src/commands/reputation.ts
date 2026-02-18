@@ -1,4 +1,4 @@
-const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
+import { DEFAULT_DIRECTORY_URL } from "@reef-protocol/protocol";
 
 interface ReputationResponse {
   address: string;

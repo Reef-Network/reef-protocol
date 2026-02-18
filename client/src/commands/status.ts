@@ -1,8 +1,10 @@
 import { loadIdentity, getConfigDir } from "../identity.js";
 import { loadContacts } from "../contacts.js";
-import { REEF_VERSION, A2A_PROTOCOL_VERSION } from "@reef-protocol/protocol";
-
-const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
+import {
+  REEF_VERSION,
+  A2A_PROTOCOL_VERSION,
+  DEFAULT_DIRECTORY_URL,
+} from "@reef-protocol/protocol";
 
 export async function statusCommand(): Promise<void> {
   const configDir = getConfigDir();
