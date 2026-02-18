@@ -18,6 +18,12 @@ export async function initDb(instance?: Sequelize): Promise<void> {
       define: {
         underscored: true,
       },
+      pool: {
+        max: 20,
+        min: 2,
+        acquire: 30000,
+        idle: 10000,
+      },
     });
     await sequelize.authenticate();
   }

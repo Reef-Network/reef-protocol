@@ -134,6 +134,8 @@ export const registerPayloadSchema = z.object({
 /** Heartbeat request schema */
 export const heartbeatPayloadSchema = z.object({
   address: z.string().min(1),
+  timestamp: z.number().int(),
+  signature: z.string().min(1),
   telemetry: z
     .object({
       messagesHandled: z.number().optional(),

@@ -273,14 +273,22 @@ describe("validateRegistration", () => {
 });
 
 describe("heartbeatPayloadSchema", () => {
-  it("validates a heartbeat with address", () => {
-    const result = heartbeatPayloadSchema.parse({ address: "0xabc" });
+  const validHeartbeat = {
+    address: "0xabc",
+    timestamp: 1700000000,
+    signature: "0xdeadbeef",
+  };
+
+  it("validates a heartbeat with address, timestamp, and signature", () => {
+    const result = heartbeatPayloadSchema.parse(validHeartbeat);
     expect(result.address).toBe("0xabc");
+    expect(result.timestamp).toBe(1700000000);
+    expect(result.signature).toBe("0xdeadbeef");
   });
 
   it("validates a heartbeat with telemetry", () => {
     const result = heartbeatPayloadSchema.parse({
-      address: "0xabc",
+      ...validHeartbeat,
       telemetry: { messagesHandled: 10, uptime: 3600 },
     });
     expect(result.telemetry?.messagesHandled).toBe(10);
@@ -290,9 +298,21 @@ describe("heartbeatPayloadSchema", () => {
     expect(() => heartbeatPayloadSchema.parse({})).toThrow();
   });
 
+  it("rejects missing timestamp", () => {
+    expect(() =>
+      heartbeatPayloadSchema.parse({ address: "0xabc", signature: "0xsig" }),
+    ).toThrow();
+  });
+
+  it("rejects missing signature", () => {
+    expect(() =>
+      heartbeatPayloadSchema.parse({ address: "0xabc", timestamp: 1700000000 }),
+    ).toThrow();
+  });
+
   it("validates a heartbeat with country", () => {
     const result = heartbeatPayloadSchema.parse({
-      address: "0xabc",
+      ...validHeartbeat,
       telemetry: { country: "no" },
     });
     expect(result.telemetry?.country).toBe("NO");
@@ -301,7 +321,7 @@ describe("heartbeatPayloadSchema", () => {
   it("rejects country with wrong length", () => {
     expect(() =>
       heartbeatPayloadSchema.parse({
-        address: "0xabc",
+        ...validHeartbeat,
         telemetry: { country: "NOR" },
       }),
     ).toThrow();

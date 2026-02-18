@@ -2,7 +2,11 @@ import "dotenv/config";
 import { buildReefAgentCard, buildSkill } from "@reef-protocol/protocol";
 import type { TaskState } from "@reef-protocol/protocol";
 import { InMemoryTaskStore } from "@a2a-js/sdk/server";
-import { getOrCreateIdentity, getConfigDir } from "./identity.js";
+import {
+  getOrCreateIdentity,
+  getConfigDir,
+  loadWalletKey,
+} from "./identity.js";
 import { createReefAgent } from "./agent.js";
 import { handleA2AMessage } from "./handler.js";
 import { createDefaultLogicHandler } from "./logic.js";
@@ -96,8 +100,16 @@ export async function startDaemon(): Promise<void> {
     console.log(`[reef] Country: ${agentConfig.country}`);
   }
 
+  // Load wallet key for heartbeat signing
+  const walletKey = loadWalletKey(configDir);
+  if (!walletKey) {
+    console.error("[reef] No wallet key found. Run `reef identity -g` first.");
+    process.exit(1);
+  }
+
   // Start heartbeat with dynamic telemetry
   const stopHeartbeat = startHeartbeat(DIRECTORY_URL, identity, {
+    walletKey,
     getTelemetry: () => {
       // Return current counters and reset them (directory accumulates)
       const snapshot = {

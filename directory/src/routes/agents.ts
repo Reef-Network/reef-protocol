@@ -5,6 +5,8 @@ import {
   heartbeatPayloadSchema,
 } from "@reef-protocol/protocol";
 import type { AgentCard } from "@a2a-js/sdk";
+import { verifyMessage, getAddress } from "viem";
+import type { Hex } from "viem";
 import { Agent } from "../models/Agent.js";
 import { App } from "../models/App.js";
 import { toAppReputationInput } from "./apps.js";
@@ -100,6 +102,11 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
 agentsRouter.get("/search", searchLimiter, async (req, res, next) => {
   try {
     const { q, skill, online, sortBy } = req.query;
+    const limit = Math.min(
+      Math.max(1, parseInt(req.query.limit as string) || 20),
+      100,
+    );
+    const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
     const where: Record<string, unknown> = {};
 
     if (q && typeof q === "string") {
@@ -123,7 +130,12 @@ agentsRouter.get("/search", searchLimiter, async (req, res, next) => {
         ? [["reputation_score", "DESC"]]
         : [["created_at", "DESC"]];
 
-    const agents = await Agent.findAll({ where, order });
+    const { rows: agents, count: total } = await Agent.findAndCountAll({
+      where,
+      order,
+      limit,
+      offset,
+    });
 
     res.json({
       agents: agents.map((a) => ({
@@ -138,6 +150,9 @@ agentsRouter.get("/search", searchLimiter, async (req, res, next) => {
         reputationScore: a.reputation_score,
         country: a.country ?? null,
       })),
+      total,
+      limit,
+      offset,
     });
   } catch (err) {
     next(err);
@@ -152,16 +167,48 @@ agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
   try {
     const body = heartbeatPayloadSchema.parse(req.body);
 
+    // Verify timestamp is within 5-minute window
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const MAX_TIMESTAMP_DRIFT_SECONDS = 300;
+    if (Math.abs(nowSeconds - body.timestamp) > MAX_TIMESTAMP_DRIFT_SECONDS) {
+      res.status(401).json({ error: "Timestamp out of range" });
+      return;
+    }
+
+    // Verify signature proves ownership of the address
+    const message = `reef-heartbeat:${body.address}:${body.timestamp}`;
+    let valid = false;
+    try {
+      valid = await verifyMessage({
+        address: getAddress(body.address) as Hex,
+        message,
+        signature: body.signature as Hex,
+      });
+    } catch {
+      // viem throws on malformed signatures
+    }
+    if (!valid) {
+      res.status(401).json({ error: "Invalid signature" });
+      return;
+    }
+
     const agent = await Agent.findByPk(body.address);
     if (!agent) {
       res.status(404).json({ error: "Agent not registered" });
       return;
     }
 
-    // Accumulate task telemetry if provided
+    // Accumulate task telemetry if provided (clamped to prevent manipulation)
+    const MAX_TASKS_PER_HEARTBEAT = 100;
     const telemetry = body.telemetry;
-    const completedDelta = telemetry?.tasksCompleted ?? 0;
-    const failedDelta = telemetry?.tasksFailed ?? 0;
+    const completedDelta = Math.min(
+      Math.max(0, telemetry?.tasksCompleted ?? 0),
+      MAX_TASKS_PER_HEARTBEAT,
+    );
+    const failedDelta = Math.min(
+      Math.max(0, telemetry?.tasksFailed ?? 0),
+      MAX_TASKS_PER_HEARTBEAT,
+    );
 
     // Update heartbeat and recompute reputation
     const now = new Date();

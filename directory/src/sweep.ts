@@ -56,7 +56,11 @@ async function sweepStaleApps(): Promise<void> {
  */
 export function startSweep(): NodeJS.Timeout {
   return setInterval(async () => {
-    await sweepStaleAgents();
-    await sweepStaleApps();
+    try {
+      await sweepStaleAgents();
+      await sweepStaleApps();
+    } catch (err) {
+      console.error("[sweep] Error:", (err as Error).message);
+    }
   }, config.sweepIntervalMs);
 }

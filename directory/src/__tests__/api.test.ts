@@ -1,11 +1,43 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach } from "vitest";
 import { newDb } from "pg-mem";
 import { Sequelize } from "sequelize";
 import supertest from "supertest";
+import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import { initDb } from "../db.js";
 import { app } from "../app.js";
 
 let request: supertest.SuperTest<supertest.Test>;
+
+/** Generate real keypairs for heartbeat signature tests */
+const testKey = generatePrivateKey();
+const testAccount = privateKeyToAccount(testKey);
+const testAddress = testAccount.address;
+
+const coordinatorKey = generatePrivateKey();
+const coordinatorAccount = privateKeyToAccount(coordinatorKey);
+const coordinatorAddress = coordinatorAccount.address;
+
+/** Helper to build a signed heartbeat payload */
+async function signedHeartbeat(
+  overrides: Record<string, unknown> = {},
+): Promise<Record<string, unknown>> {
+  const address = (overrides.address as string) || testAddress;
+  const timestamp =
+    (overrides.timestamp as number) || Math.floor(Date.now() / 1000);
+  const message = `reef-heartbeat:${address}:${timestamp}`;
+  const account = overrides._account || testAccount;
+  const signature = await (account as typeof testAccount).signMessage({
+    message,
+  });
+  return {
+    address,
+    timestamp,
+    signature,
+    ...overrides,
+    // Remove internal-only fields
+    _account: undefined,
+  };
+}
 
 /** Helper to build a minimal AgentCard for testing */
 function makeAgentCard(overrides: Record<string, unknown> = {}) {
@@ -114,7 +146,7 @@ describe("POST /agents/register", () => {
 describe("coordinator agent setup", () => {
   it("registers a coordinator agent", async () => {
     const res = await request.post("/agents/register").send({
-      address: "0xCoordinator",
+      address: coordinatorAddress,
       agentCard: makeAgentCard({ name: "Coordinator Agent" }),
     });
     expect(res.status).toBe(200);
@@ -194,10 +226,18 @@ describe("GET /agents/search", () => {
 });
 
 describe("POST /agents/heartbeat", () => {
-  it("updates heartbeat for registered agent", async () => {
-    const res = await request
-      .post("/agents/heartbeat")
-      .send({ address: "0xAgent001" });
+  // Register the test agent (with a real address for signature verification)
+  beforeAll(async () => {
+    await request.post("/agents/register").send({
+      address: testAddress,
+      agentCard: makeAgentCard({ name: "Signed Agent" }),
+    });
+  });
+
+  it("accepts heartbeat with valid signature", async () => {
+    const payload = await signedHeartbeat();
+
+    const res = await request.post("/agents/heartbeat").send(payload);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -205,31 +245,88 @@ describe("POST /agents/heartbeat", () => {
     expect(typeof res.body.stats.onlineAgents).toBe("number");
   });
 
+  it("rejects heartbeat with invalid signature", async () => {
+    const payload = await signedHeartbeat();
+    // Tamper with the signature
+    payload.signature = "0x" + "ab".repeat(65);
+
+    const res = await request.post("/agents/heartbeat").send(payload);
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("Invalid signature");
+  });
+
+  it("rejects heartbeat signed by wrong key", async () => {
+    const otherKey = generatePrivateKey();
+    const otherAccount = privateKeyToAccount(otherKey);
+
+    // Sign with otherAccount but claim to be testAddress
+    const timestamp = Math.floor(Date.now() / 1000);
+    const message = `reef-heartbeat:${testAddress}:${timestamp}`;
+    const signature = await otherAccount.signMessage({ message });
+
+    const res = await request.post("/agents/heartbeat").send({
+      address: testAddress,
+      timestamp,
+      signature,
+    });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("Invalid signature");
+  });
+
+  it("rejects heartbeat with expired timestamp", async () => {
+    const expiredTimestamp = Math.floor(Date.now() / 1000) - 600; // 10 min ago
+    const message = `reef-heartbeat:${testAddress}:${expiredTimestamp}`;
+    const signature = await testAccount.signMessage({ message });
+
+    const res = await request.post("/agents/heartbeat").send({
+      address: testAddress,
+      timestamp: expiredTimestamp,
+      signature,
+    });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("Timestamp out of range");
+  });
+
   it("returns 404 for unregistered agent", async () => {
-    const res = await request
-      .post("/agents/heartbeat")
-      .send({ address: "0xUnregistered" });
+    const unregKey = generatePrivateKey();
+    const unregAccount = privateKeyToAccount(unregKey);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const message = `reef-heartbeat:${unregAccount.address}:${timestamp}`;
+    const signature = await unregAccount.signMessage({ message });
+
+    const res = await request.post("/agents/heartbeat").send({
+      address: unregAccount.address,
+      timestamp,
+      signature,
+    });
 
     expect(res.status).toBe(404);
   });
 
   it("accumulates task telemetry", async () => {
-    const res = await request.post("/agents/heartbeat").send({
-      address: "0xAgent001",
+    const payload = await signedHeartbeat({
       telemetry: { tasksCompleted: 5, tasksFailed: 1 },
     });
+
+    const res = await request.post("/agents/heartbeat").send(payload);
 
     expect(res.status).toBe(200);
 
     // Verify counters were accumulated
-    const profile = await request.get("/agents/0xAgent001");
+    const profile = await request.get(`/agents/${testAddress}`);
     expect(profile.body.tasksCompleted).toBe(5);
     expect(profile.body.tasksFailed).toBe(1);
     expect(profile.body.totalInteractions).toBe(6);
   });
 
-  it("rejects missing address", async () => {
-    const res = await request.post("/agents/heartbeat").send({});
+  it("rejects missing signature", async () => {
+    const res = await request.post("/agents/heartbeat").send({
+      address: testAddress,
+      timestamp: Math.floor(Date.now() / 1000),
+    });
 
     expect(res.status).toBe(400);
   });
@@ -258,6 +355,11 @@ describe("GET /agents/:address/reputation", () => {
 });
 
 describe("GET /stats", () => {
+  beforeEach(async () => {
+    const { clearStatsCache } = await import("../routes/stats.js");
+    clearStatsCache();
+  });
+
   it("returns live stats when no snapshot exists", async () => {
     // Delete snapshots to force live computation
     const { Snapshot } = await import("../models/Snapshot.js");
@@ -361,13 +463,13 @@ describe("POST /apps/register", () => {
 
   it("registers a coordinated app", async () => {
     const res = await request.post("/apps/register").send({
-      address: "0xCoordinator",
+      address: coordinatorAddress,
       appId: "reef-news",
       manifest: makeManifest({
         appId: "reef-news",
         name: "Reef News",
         category: "social",
-        coordinatorAddress: "0xCoordinator",
+        coordinatorAddress: coordinatorAddress,
       }),
     });
 
@@ -433,7 +535,7 @@ describe("GET /apps/:appId", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.type).toBe("coordinated");
-    expect(res.body.coordinatorAddress).toBe("0xCoordinator");
+    expect(res.body.coordinatorAddress).toBe(coordinatorAddress);
   });
 
   it("returns 404 for unknown app", async () => {
@@ -521,12 +623,14 @@ describe("GET /apps/:appId/reputation", () => {
 
 describe("heartbeat piggybacking for coordinated apps", () => {
   it("refreshes coordinated app on agent heartbeat", async () => {
-    // 0xCoordinator was registered in "coordinator agent setup" above
-    // Send heartbeat for the coordinator
-    const hbRes = await request.post("/agents/heartbeat").send({
-      address: "0xCoordinator",
+    // coordinatorAddress was registered in "coordinator agent setup" above
+    const payload = await signedHeartbeat({
+      address: coordinatorAddress,
+      _account: coordinatorAccount,
       telemetry: { tasksCompleted: 3, tasksFailed: 0 },
     });
+
+    const hbRes = await request.post("/agents/heartbeat").send(payload);
     expect(hbRes.status).toBe(200);
 
     // Verify the coordinated app was refreshed
@@ -538,13 +642,13 @@ describe("heartbeat piggybacking for coordinated apps", () => {
   });
 
   it("does not piggyback on unrelated agent heartbeat", async () => {
-    // Agent001 is not a coordinator — p2p-chess should be unaffected
+    // testAddress is not a coordinator — p2p-chess should be unaffected
     const before = await request.get("/apps/p2p-chess");
 
-    await request.post("/agents/heartbeat").send({
-      address: "0xAgent001",
+    const payload = await signedHeartbeat({
       telemetry: { tasksCompleted: 10, tasksFailed: 0 },
     });
+    await request.post("/agents/heartbeat").send(payload);
 
     const after = await request.get("/apps/p2p-chess");
     expect(after.body.tasksCompleted).toBe(before.body.tasksCompleted);

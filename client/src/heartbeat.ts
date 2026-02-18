@@ -1,4 +1,6 @@
 import type { AgentIdentity } from "@reef-protocol/protocol";
+import { privateKeyToAccount } from "viem/accounts";
+import type { Hex } from "viem";
 
 const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
 const HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
@@ -13,10 +15,20 @@ export interface TelemetryData {
 
 export interface HeartbeatOptions {
   intervalMs?: number;
+  /** Wallet private key (hex) for signing heartbeats. */
+  walletKey: string;
   /** Static telemetry (sent every 4th beat). Ignored if getTelemetry is provided. */
   telemetry?: TelemetryData;
   /** Dynamic telemetry callback — called every 4th beat to get current counters. */
   getTelemetry?: () => TelemetryData;
+}
+
+/** Build the message string that is signed for heartbeat auth. */
+export function buildHeartbeatMessage(
+  address: string,
+  timestamp: number,
+): string {
+  return `reef-heartbeat:${address}:${timestamp}`;
 }
 
 /**
@@ -26,17 +38,24 @@ export interface HeartbeatOptions {
 export function startHeartbeat(
   directoryUrl: string | undefined,
   identity: AgentIdentity,
-  options?: HeartbeatOptions,
+  options: HeartbeatOptions,
 ): () => void {
   const url = directoryUrl || DEFAULT_DIRECTORY_URL;
   const intervalMs = options?.intervalMs || HEARTBEAT_INTERVAL_MS;
+  const account = privateKeyToAccount(options.walletKey as Hex);
   let beatCount = 0;
 
   async function beat() {
     beatCount++;
     try {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const message = buildHeartbeatMessage(identity.address, timestamp);
+      const signature = await account.signMessage({ message });
+
       const body: Record<string, unknown> = {
         address: identity.address,
+        timestamp,
+        signature,
       };
 
       // Include telemetry every 4th beat

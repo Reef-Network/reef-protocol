@@ -8,6 +8,14 @@ import { readLimiter } from "../middleware/rateLimit.js";
 
 export const statsRouter = Router();
 
+let statsCache: { data: unknown; expiresAt: number } | null = null;
+const STATS_CACHE_TTL_MS = 60_000; // 1 minute
+
+/** Clear the stats cache (used in tests). */
+export function clearStatsCache() {
+  statsCache = null;
+}
+
 /**
  * Compute live stats (fallback when no snapshot exists).
  */
@@ -72,6 +80,14 @@ async function computeLiveStats() {
  */
 statsRouter.get("/", readLimiter, async (_req, res, next) => {
   try {
+    const now = Date.now();
+    if (statsCache && now < statsCache.expiresAt) {
+      res.json(statsCache.data);
+      return;
+    }
+
+    let data: unknown;
+
     const snapshot = await Snapshot.findOne({
       order: [["captured_at", "DESC"]],
     });
@@ -92,7 +108,7 @@ statsRouter.get("/", readLimiter, async (_req, res, next) => {
         where: { availability: "available" },
       });
 
-      res.json({
+      data = {
         totalAgents: snapshot.total_agents,
         onlineAgents: snapshot.online_agents,
         topSkills: snapshot.top_skills,
@@ -100,11 +116,13 @@ statsRouter.get("/", readLimiter, async (_req, res, next) => {
         totalApps,
         availableApps,
         capturedAt: snapshot.captured_at.toISOString(),
-      });
+      };
     } else {
-      const stats = await computeLiveStats();
-      res.json(stats);
+      data = await computeLiveStats();
     }
+
+    statsCache = { data, expiresAt: now + STATS_CACHE_TTL_MS };
+    res.json(data);
   } catch (err) {
     next(err);
   }

@@ -96,6 +96,11 @@ appsRouter.post("/register", registrationLimiter, async (req, res, next) => {
 appsRouter.get("/search", searchLimiter, async (req, res, next) => {
   try {
     const { q, category, type, available, sortBy } = req.query;
+    const limit = Math.min(
+      Math.max(1, parseInt(req.query.limit as string) || 20),
+      100,
+    );
+    const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
     const where: Record<string, unknown> = {};
 
     if (q && typeof q === "string") {
@@ -124,7 +129,12 @@ appsRouter.get("/search", searchLimiter, async (req, res, next) => {
         ? [["reputation_score", "DESC"]]
         : [["created_at", "DESC"]];
 
-    const apps = await App.findAll({ where, order });
+    const { rows: apps, count: total } = await App.findAndCountAll({
+      where,
+      order,
+      limit,
+      offset,
+    });
 
     res.json({
       apps: apps.map((a) => ({
@@ -142,6 +152,9 @@ appsRouter.get("/search", searchLimiter, async (req, res, next) => {
         lastRefreshed: a.last_refreshed?.toISOString(),
         reputationScore: a.reputation_score,
       })),
+      total,
+      limit,
+      offset,
     });
   } catch (err) {
     next(err);

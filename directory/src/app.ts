@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import { agentsRouter } from "./routes/agents.js";
 import { appsRouter } from "./routes/apps.js";
 import { statsRouter } from "./routes/stats.js";
@@ -9,6 +10,7 @@ import { ZodError } from "zod";
 export const app = express();
 
 // Middleware
+app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: "50kb" }));
 
