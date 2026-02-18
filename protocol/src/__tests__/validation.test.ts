@@ -15,6 +15,11 @@ import {
   appManifestSchema,
   appRegisterPayloadSchema,
   validateAppRegistration,
+  buildAppActionDataPart,
+  buildAppAction,
+  buildAppManifest,
+  extractAppAction,
+  compareManifests,
 } from "../index.js";
 
 describe("partSchema", () => {
@@ -401,8 +406,9 @@ describe("appManifestSchema", () => {
 });
 
 describe("appRegisterPayloadSchema", () => {
-  it("validates a registration payload", () => {
+  it("validates a registration payload with address", () => {
     const result = validateAppRegistration({
+      address: "0xOwner",
       appId: "chess",
       manifest: {
         appId: "chess",
@@ -414,9 +420,123 @@ describe("appRegisterPayloadSchema", () => {
       },
     });
     expect(result.appId).toBe("chess");
+    expect(result.address).toBe("0xOwner");
+  });
+
+  it("rejects missing address", () => {
+    expect(() =>
+      appRegisterPayloadSchema.parse({
+        appId: "chess",
+        manifest: {
+          appId: "chess",
+          name: "Chess",
+          description: "Play chess",
+          version: "0.1.0",
+          actions: [],
+          minParticipants: 2,
+        },
+      }),
+    ).toThrow();
   });
 
   it("rejects missing manifest", () => {
-    expect(() => appRegisterPayloadSchema.parse({ appId: "chess" })).toThrow();
+    expect(() =>
+      appRegisterPayloadSchema.parse({ address: "0xOwner", appId: "chess" }),
+    ).toThrow();
+  });
+});
+
+describe("buildAppActionDataPart", () => {
+  it("builds a data part with appId and action", () => {
+    const part = buildAppActionDataPart("chess", "move", {
+      from: "e2",
+      to: "e4",
+    });
+    expect(part.kind).toBe("data");
+    expect(part.data.appId).toBe("chess");
+    expect(part.data.action).toBe("move");
+    expect(part.data.payload).toEqual({ from: "e2", to: "e4" });
+  });
+
+  it("defaults payload to empty object", () => {
+    const part = buildAppActionDataPart("chess", "resign");
+    expect(part.data.payload).toEqual({});
+  });
+});
+
+describe("extractAppAction", () => {
+  it("extracts appId and action from a DataPart", () => {
+    const part = {
+      kind: "data" as const,
+      data: { appId: "chess", action: "move", payload: { from: "e2" } },
+    };
+    const result = extractAppAction(part);
+    expect(result).toEqual({
+      appId: "chess",
+      action: "move",
+      payload: { from: "e2" },
+    });
+  });
+
+  it("returns null for DataParts without appId", () => {
+    const part = { kind: "data" as const, data: { key: "value" } };
+    const result = extractAppAction(part);
+    expect(result).toBeNull();
+  });
+
+  it("returns null for DataParts without action", () => {
+    const part = { kind: "data" as const, data: { appId: "chess" } };
+    const result = extractAppAction(part);
+    expect(result).toBeNull();
+  });
+});
+
+describe("compareManifests", () => {
+  const baseManifest = buildAppManifest(
+    "chess",
+    "Chess",
+    "Play chess",
+    [buildAppAction("move", "Move", "Make a move")],
+    { version: "0.1.0", minParticipants: 2, maxParticipants: 2 },
+  );
+
+  it("reports compatible for identical manifests", () => {
+    const result = compareManifests(baseManifest, { ...baseManifest });
+    expect(result.compatible).toBe(true);
+    expect(result.reasons).toEqual([]);
+  });
+
+  it("detects version mismatch", () => {
+    const other = { ...baseManifest, version: "0.2.0" };
+    const result = compareManifests(baseManifest, other);
+    expect(result.compatible).toBe(false);
+    expect(result.reasons[0]).toContain("version mismatch");
+  });
+
+  it("detects action mismatch", () => {
+    const other = {
+      ...baseManifest,
+      actions: [
+        buildAppAction("move", "Move", "Make a move"),
+        buildAppAction("resign", "Resign", "Resign"),
+      ],
+    };
+    const result = compareManifests(baseManifest, other);
+    expect(result.compatible).toBe(false);
+    expect(result.reasons[0]).toContain("actions mismatch");
+  });
+
+  it("detects minParticipants mismatch", () => {
+    const other = { ...baseManifest, minParticipants: 1 };
+    const result = compareManifests(baseManifest, other);
+    expect(result.compatible).toBe(false);
+    expect(result.reasons[0]).toContain("minParticipants mismatch");
+  });
+
+  it("detects appId mismatch", () => {
+    const other = { ...baseManifest, appId: "checkers" };
+    const result = compareManifests(baseManifest, other);
+    expect(result.compatible).toBe(false);
+    expect(result.reasons[0]).toContain("appId mismatch");
   });
 });

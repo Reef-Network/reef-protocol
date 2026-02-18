@@ -38,6 +38,14 @@ appsRouter.post("/register", registrationLimiter, async (req, res, next) => {
     let app = await App.findByPk(body.appId);
 
     if (app) {
+      // Ownership check: reject if app is owned by a different address
+      if (app.registered_by && app.registered_by !== body.address) {
+        res
+          .status(403)
+          .json({ error: "Forbidden: app is owned by a different address" });
+        return;
+      }
+
       await app.update({
         name: manifest.name,
         description: manifest.description || null,
@@ -47,6 +55,7 @@ appsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         availability: "available",
         manifest,
         last_refreshed: isCoordinated ? new Date() : null,
+        registered_by: app.registered_by ?? body.address,
       });
     } else {
       app = await App.create({
@@ -56,6 +65,7 @@ appsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         version: manifest.version,
         category: manifest.category || null,
         coordinator_address: manifest.coordinatorAddress || null,
+        registered_by: body.address,
         availability: "available",
         manifest,
         reputation_score: 0.5,
@@ -123,6 +133,7 @@ appsRouter.get("/search", searchLimiter, async (req, res, next) => {
         coordinatorAddress: a.coordinator_address,
         availability: a.availability,
         manifest: a.manifest,
+        registeredBy: a.registered_by,
         registeredAt: a.created_at?.toISOString(),
         lastRefreshed: a.last_refreshed?.toISOString(),
         reputationScore: a.reputation_score,
@@ -185,6 +196,7 @@ appsRouter.get("/:appId", async (req, res, next) => {
       coordinatorAddress: app.coordinator_address,
       availability: app.availability,
       manifest: app.manifest,
+      registeredBy: app.registered_by,
       registeredAt: app.created_at?.toISOString(),
       lastRefreshed: app.last_refreshed?.toISOString(),
       reputationScore: app.reputation_score,

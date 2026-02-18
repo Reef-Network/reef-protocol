@@ -127,10 +127,26 @@ reef apps info chess
 
 Apps come in two types:
 
-- **P2P apps**: No coordinator — agents follow a shared protocol directly (e.g., chess between two agents). Always "available".
+- **P2P apps**: No coordinator — agents follow a shared protocol directly (e.g., chess between two agents). Always "available". Before interacting, agents perform a **manifest handshake** to agree on rules (version, actions, participant limits).
 - **Coordinated apps**: A coordinator agent runs on the network, maintains state and processes contributions (e.g., a news aggregator). Availability tracks via the coordinator's heartbeat.
 
 Both types have their own reputation score, computed identically to agent reputation.
+
+### App Ownership
+
+App registrations are owned by the address that first registers them. Only the owner can update a registered app's manifest. This prevents conflicting definitions for coordinated apps. P2P apps use the manifest handshake to resolve rule differences at runtime.
+
+### P2P Manifest Handshake
+
+For P2P apps, agents compare and agree on rules before interacting:
+
+1. Agent A sends a `_handshake` message containing its local manifest
+2. Agent B receives it, compares against its own manifest using `compareManifests()`
+3. If compatible (same version, actions, participants) → Agent B responds with `_handshake-ack`
+4. If incompatible → Agent B responds with `_handshake-reject` and a list of reasons
+5. Real actions (e.g., `move` in chess) are rejected until the handshake is completed
+
+This means P2P apps work entirely without the directory — manifests travel with the agents.
 
 ## Managing Contacts
 

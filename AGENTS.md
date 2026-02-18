@@ -23,9 +23,9 @@ npm run format:check     # Prettier check
 npm run format           # Prettier auto-format
 
 # Tests (run per-package — no Docker or database needed)
-cd protocol && npx vitest run    # 49 tests
-cd client && npx vitest run      # 51 tests
-cd directory && npx vitest run   # 55 tests — uses pg-mem in-memory
+cd protocol && npx vitest run    # 60 tests
+cd client && npx vitest run      # 63 tests
+cd directory && npx vitest run   # 59 tests — uses pg-mem in-memory
 ```
 
 ## Key conventions
@@ -41,6 +41,9 @@ cd directory && npx vitest run   # 55 tests — uses pg-mem in-memory
 - **Reputation system** — Bayesian Beta scoring (0–1) computed from uptime reliability, profile completeness, task success rate, and activity level. Score is recomputed on each heartbeat. Task outcome counters are accumulated via heartbeat telemetry.
 - **Rooms (group conversations)** — Multi-agent group chats built on XMTP's native group support. The handler responds to the originating conversation (DM or group) via an optional `Conversation` parameter. Room metadata (creator, purpose) is stored in the group's `appData` field.
 - **Apps (decentralized applications)** — First-class directory citizens with their own table and reputation. Two models: *coordinated* (a coordinator agent runs on the network) and *P2P* (agents follow a shared protocol directly). Apps define an `AppManifest` with actions, participant limits, and optional coordinator address. Coordinated apps piggyback on their coordinator agent's heartbeat for availability tracking. P2P apps are always "available" and never swept.
+- **App ownership** — Each app registration tracks a `registered_by` address. Only the original registrant can update an app's manifest (403 Forbidden for other addresses). Unowned legacy apps are claimed by the first updater.
+- **App-aware routing (AppRouter)** — Optional client-side router that maps `appId` → `AppHandler`. Inspects DataParts in A2A messages for `appId`/`action` fields and dispatches to the matching handler. Falls through to the default `AgentLogicHandler` for non-app messages.
+- **P2P manifest handshake** — Before two agents interact on a P2P app, they exchange manifests via reserved `_handshake` / `_handshake-ack` / `_handshake-reject` actions. `compareManifests()` verifies compatibility (version, actions, participants). Real actions are rejected until the handshake completes. Sessions are tracked per `appId:peerAddress`.
 
 ## Commit and PR conventions
 
@@ -55,15 +58,16 @@ protocol/src/
   types.ts          <- Re-exports A2A types from @a2a-js/sdk, Reef-specific types, REEF_VERSION
   transport.ts      <- encodeA2AMessage() / decodeA2AMessage() / type guards
   validation.ts     <- Zod schemas for A2A parts, messages, tasks, AgentCard, registration
-  builders.ts       <- textPart(), createMessage(), createSendMessageRequest(), buildReefAgentCard()
+  builders.ts       <- textPart(), createMessage(), createSendMessageRequest(), buildReefAgentCard(), buildAppActionDataPart(), extractAppAction(), compareManifests()
   index.ts          <- Re-exports everything
 
 client/src/
   identity.ts       <- Keypair generation, loads from ~/.reef/
   agent.ts          <- XMTP Agent wrapper
   contacts.ts       <- Contact list CRUD (contacts.json)
-  handler.ts        <- A2A JSON-RPC request dispatcher (message/send, tasks/get, tasks/cancel), onTaskOutcome callback
+  handler.ts        <- A2A JSON-RPC request dispatcher (message/send, tasks/get, tasks/cancel), onTaskOutcome callback, optional AppRouter integration
   logic.ts          <- Default echo AgentLogicHandler
+  app-router.ts     <- AppHandler interface + AppRouter class (app-aware routing, P2P handshake protocol, session tracking)
   sender.ts         <- sendTextMessage(), sendA2AMessage(), sendGetTaskRequest(), sendCancelTaskRequest(), sendTextMessageToGroup(), sendRawToConversation()
   rooms.ts          <- Room CRUD: createRoom(), listRooms(), getRoomDetails(), addRoomMembers(), removeRoomMembers()
   heartbeat.ts      <- Periodic directory heartbeat with getTelemetry callback
@@ -80,7 +84,7 @@ directory/src/
   models/           <- Agent, App (with reputation columns), Snapshot (with init functions)
   routes/           <- agents.ts (register/search/heartbeat/reputation), apps.ts (register/search/info/reputation), stats.ts
   middleware/       <- Rate limiting
-  migrations/       <- Umzug migrations (00001–00005, including apps table)
+  migrations/       <- Umzug migrations (00001–00006, including apps table + registered_by)
 ```
 
 ## Gotchas

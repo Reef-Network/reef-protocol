@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import { buildAppManifest, buildAppAction } from "@reef-protocol/protocol";
+import { getOrCreateIdentity, getConfigDir } from "../identity.js";
 
 const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || "http://localhost:3000";
 
@@ -44,7 +45,11 @@ export async function appsRegisterCommand(
   const res = await fetch(`${DIRECTORY_URL}/apps/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ appId: options.appId, manifest }),
+    body: JSON.stringify({
+      address: getOrCreateIdentity(getConfigDir()).address,
+      appId: options.appId,
+      manifest,
+    }),
   });
 
   if (!res.ok) {

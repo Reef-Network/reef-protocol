@@ -10,6 +10,7 @@ import {
   isA2AResponse,
   encodeA2AMessage,
 } from "@reef-protocol/protocol";
+import type { AppRouter } from "./app-router.js";
 
 type HexAddress = `0x${string}`;
 
@@ -45,6 +46,7 @@ export async function handleA2AMessage(
   logicHandler: AgentLogicHandler,
   onTaskOutcome?: TaskOutcomeCallback,
   conversation?: Conversation,
+  appRouter?: AppRouter,
 ): Promise<void> {
   const decoded = decodeA2AMessage(raw);
 
@@ -84,16 +86,25 @@ export async function handleA2AMessage(
           return;
         }
 
-        // Look up existing task if taskId is provided
-        let existingTask: Task | undefined;
-        if (params.message.taskId) {
-          existingTask = await taskStore.load(params.message.taskId);
-        }
+        // Try app router first (if available)
+        let result: Message | Task;
+        const routed = appRouter
+          ? await appRouter.route(params.message, fromAddress)
+          : null;
 
-        const result = await logicHandler.handleMessage(
-          params.message,
-          existingTask,
-        );
+        if (routed) {
+          result = routed.result;
+        } else {
+          // Fall through to default logic handler
+          let existingTask: Task | undefined;
+          if (params.message.taskId) {
+            existingTask = await taskStore.load(params.message.taskId);
+          }
+          result = await logicHandler.handleMessage(
+            params.message,
+            existingTask,
+          );
+        }
 
         // If result is a Task, store it and report outcome
         if ("kind" in result && result.kind === "task") {

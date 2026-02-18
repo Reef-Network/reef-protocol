@@ -345,6 +345,7 @@ function makeManifest(overrides: Record<string, unknown> = {}) {
 describe("POST /apps/register", () => {
   it("registers a P2P app", async () => {
     const res = await request.post("/apps/register").send({
+      address: "0xAppOwner1",
       appId: "p2p-chess",
       manifest: makeManifest({
         appId: "p2p-chess",
@@ -360,6 +361,7 @@ describe("POST /apps/register", () => {
 
   it("registers a coordinated app", async () => {
     const res = await request.post("/apps/register").send({
+      address: "0xCoordinator",
       appId: "reef-news",
       manifest: makeManifest({
         appId: "reef-news",
@@ -375,11 +377,13 @@ describe("POST /apps/register", () => {
 
   it("upserts an existing app", async () => {
     await request.post("/apps/register").send({
+      address: "0xUpsertOwner",
       appId: "upsert-app",
       manifest: makeManifest({ appId: "upsert-app", name: "V1" }),
     });
 
     const res = await request.post("/apps/register").send({
+      address: "0xUpsertOwner",
       appId: "upsert-app",
       manifest: makeManifest({ appId: "upsert-app", name: "V2" }),
     });
@@ -393,7 +397,7 @@ describe("POST /apps/register", () => {
   it("rejects missing manifest", async () => {
     const res = await request
       .post("/apps/register")
-      .send({ appId: "no-manifest" });
+      .send({ address: "0xTest", appId: "no-manifest" });
 
     // 400 from validation, or 429 if rate-limited in test sequence
     expect([400, 429]).toContain(res.status);
@@ -401,6 +405,7 @@ describe("POST /apps/register", () => {
 
   it("rejects invalid appId in manifest", async () => {
     const res = await request.post("/apps/register").send({
+      address: "0xTest",
       appId: "Bad App",
       manifest: makeManifest({ appId: "Bad App" }),
     });
@@ -543,5 +548,46 @@ describe("heartbeat piggybacking for coordinated apps", () => {
 
     const after = await request.get("/apps/p2p-chess");
     expect(after.body.tasksCompleted).toBe(before.body.tasksCompleted);
+  });
+});
+
+describe("app ownership", () => {
+  it("allows owner to update their app", async () => {
+    const res = await request.post("/apps/register").send({
+      address: "0xAppOwner1",
+      appId: "p2p-chess",
+      manifest: makeManifest({
+        appId: "p2p-chess",
+        name: "P2P Chess Updated",
+        minParticipants: 2,
+      }),
+    });
+    // Accept 200 or 429 (rate-limited)
+    expect([200, 429]).toContain(res.status);
+  });
+
+  it("rejects update from different address with 403", async () => {
+    const res = await request.post("/apps/register").send({
+      address: "0xIntruder",
+      appId: "p2p-chess",
+      manifest: makeManifest({ appId: "p2p-chess", name: "Hijacked" }),
+    });
+    expect([403, 429]).toContain(res.status);
+  });
+
+  it("includes registeredBy in app profile", async () => {
+    const res = await request.get("/apps/p2p-chess");
+    expect(res.status).toBe(200);
+    expect(res.body.registeredBy).toBe("0xAppOwner1");
+  });
+
+  it("includes registeredBy in search results", async () => {
+    const res = await request.get("/apps/search?q=Chess");
+    expect(res.status).toBe(200);
+    const chess = res.body.apps.find(
+      (a: { appId: string }) => a.appId === "p2p-chess",
+    );
+    expect(chess).toBeTruthy();
+    expect(chess.registeredBy).toBe("0xAppOwner1");
   });
 });

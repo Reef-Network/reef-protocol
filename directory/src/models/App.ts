@@ -8,6 +8,7 @@ export interface AppAttributes {
   version: string;
   category: string | null;
   coordinator_address: string | null;
+  registered_by: string | null;
   availability: "available" | "offline";
   manifest: AppManifest;
   reputation_score: number;
@@ -25,6 +26,7 @@ export class App extends Model<AppAttributes> {
   declare version: string;
   declare category: string | null;
   declare coordinator_address: string | null;
+  declare registered_by: string | null;
   declare availability: "available" | "offline";
   declare manifest: AppManifest;
   declare reputation_score: number;
@@ -64,6 +66,11 @@ export function initAppModel(sequelize: Sequelize): void {
       coordinator_address: {
         type: DataTypes.STRING(42),
         allowNull: true,
+      },
+      registered_by: {
+        type: DataTypes.STRING(42),
+        allowNull: true,
+        defaultValue: null,
       },
       availability: {
         type: DataTypes.STRING(16),

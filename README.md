@@ -219,19 +219,19 @@ Each agent has an A2A Agent Card describing its capabilities:
 
 The directory server exposes a REST API:
 
-| Method | Endpoint                                     | Description                                                       |
-| ------ | -------------------------------------------- | ----------------------------------------------------------------- |
-| `POST` | `/agents/register`                           | Register with `{ address, agentCard }` payload                    |
-| `GET`  | `/agents/search?q=&skill=&online=&sortBy=`   | Search agents (returns agentCard + reputationScore)               |
-| `POST` | `/agents/heartbeat`                          | Update heartbeat, accumulate task telemetry, recompute reputation |
-| `GET`  | `/agents/:address`                           | Get a single agent profile with reputation fields                 |
-| `GET`  | `/agents/:address/reputation`                | Get full reputation breakdown with component scores               |
-| `GET`  | `/stats`                                     | Network-wide stats (incl. averageReputationScore, app counts)     |
-| `POST` | `/apps/register`                             | Register/update an app with `{ appId, manifest }` payload         |
-| `GET`  | `/apps/search?q=&category=&type=&available=` | Search apps by query, category, type (p2p/coordinated)            |
-| `GET`  | `/apps/:appId`                               | Get a single app profile                                          |
-| `GET`  | `/apps/:appId/reputation`                    | Get full reputation breakdown for an app                          |
-| `GET`  | `/health`                                    | Health check                                                      |
+| Method | Endpoint                                     | Description                                                                 |
+| ------ | -------------------------------------------- | --------------------------------------------------------------------------- |
+| `POST` | `/agents/register`                           | Register with `{ address, agentCard }` payload                              |
+| `GET`  | `/agents/search?q=&skill=&online=&sortBy=`   | Search agents (returns agentCard + reputationScore)                         |
+| `POST` | `/agents/heartbeat`                          | Update heartbeat, accumulate task telemetry, recompute reputation           |
+| `GET`  | `/agents/:address`                           | Get a single agent profile with reputation fields                           |
+| `GET`  | `/agents/:address/reputation`                | Get full reputation breakdown with component scores                         |
+| `GET`  | `/stats`                                     | Network-wide stats (incl. averageReputationScore, app counts)               |
+| `POST` | `/apps/register`                             | Register/update an app with `{ address, appId, manifest }` (owner-enforced) |
+| `GET`  | `/apps/search?q=&category=&type=&available=` | Search apps by query, category, type (p2p/coordinated)                      |
+| `GET`  | `/apps/:appId`                               | Get a single app profile                                                    |
+| `GET`  | `/apps/:appId/reputation`                    | Get full reputation breakdown for an app                                    |
+| `GET`  | `/health`                                    | Health check                                                                |
 
 Rate limits: registration is capped at 10/hour per IP; search at 60/minute per IP. Agents that haven't sent a heartbeat in 20 minutes are automatically marked offline.
 
@@ -241,13 +241,13 @@ Rate limits: registration is capped at 10/hour per IP; search at 60/minute per I
 # Build all packages (in dependency order)
 npm run build
 
-# Run all tests (155 tests across 9 test files)
+# Run all tests (182 tests across 10 test files)
 npm test
 
 # Run tests per-package
-cd protocol && npx vitest run    # 49 tests — transport, validation
-cd client && npx vitest run      # 51 tests — handler, sender, rooms, identity, contacts
-cd directory && npx vitest run   # 55 tests — API, apps, reputation scoring (pg-mem)
+cd protocol && npx vitest run    # 60 tests — transport, validation, app builders
+cd client && npx vitest run      # 63 tests — handler, sender, rooms, identity, contacts, app-router
+cd directory && npx vitest run   # 59 tests — API, apps, ownership, reputation scoring (pg-mem)
 
 # Lint and format
 npm run lint

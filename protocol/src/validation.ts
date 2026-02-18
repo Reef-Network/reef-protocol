@@ -188,6 +188,7 @@ export const appManifestSchema = z.object({
 
 /** App registration payload schema */
 export const appRegisterPayloadSchema = z.object({
+  address: z.string().min(1),
   appId: z.string().min(1).max(64),
   manifest: appManifestSchema,
 });

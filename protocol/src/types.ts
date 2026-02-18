@@ -140,6 +140,7 @@ export interface AppManifest {
 
 /** Request body for POST /apps/register */
 export interface AppRegisterPayload {
+  address: string;
   appId: string;
   manifest: AppManifest;
 }
@@ -163,7 +164,21 @@ export interface AppSearchResult {
   manifest: AppManifest;
   registeredAt?: string;
   lastRefreshed?: string;
+  registeredBy?: string;
   reputationScore?: number;
+}
+
+/** Extracted app action from a DataPart */
+export interface AppActionMessage {
+  appId: string;
+  action: string;
+  payload: Record<string, unknown>;
+}
+
+/** Result of comparing two manifests for P2P compatibility */
+export interface ManifestComparisonResult {
+  compatible: boolean;
+  reasons: string[];
 }
 
 /** Search response for apps */

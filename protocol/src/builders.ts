@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   TextPart,
+  DataPart,
   Message,
   AgentCard,
   AgentSkill,
@@ -11,7 +12,12 @@ import type {
   CancelTaskRequest,
 } from "@a2a-js/sdk";
 import { A2A_PROTOCOL_VERSION, REEF_VERSION } from "./types.js";
-import type { AppManifest, AppAction } from "./types.js";
+import type {
+  AppManifest,
+  AppAction,
+  AppActionMessage,
+  ManifestComparisonResult,
+} from "./types.js";
 
 /** Create a TextPart */
 export function textPart(text: string): TextPart {
@@ -158,4 +164,67 @@ export function buildAppManifest(
     minParticipants: options?.minParticipants ?? 2,
     maxParticipants: options?.maxParticipants,
   };
+}
+
+/** Build a DataPart that carries an app action */
+export function buildAppActionDataPart(
+  appId: string,
+  action: string,
+  payload: Record<string, unknown> = {},
+): DataPart {
+  return {
+    kind: "data",
+    data: { appId, action, payload },
+  };
+}
+
+/** Extract an AppActionMessage from a DataPart, or null if not an app action */
+export function extractAppAction(part: DataPart): AppActionMessage | null {
+  const data = part.data as Record<string, unknown>;
+  if (typeof data.appId === "string" && typeof data.action === "string") {
+    return {
+      appId: data.appId,
+      action: data.action,
+      payload: (data.payload as Record<string, unknown>) ?? {},
+    };
+  }
+  return null;
+}
+
+/** Compare two manifests for P2P compatibility */
+export function compareManifests(
+  a: AppManifest,
+  b: AppManifest,
+): ManifestComparisonResult {
+  const reasons: string[] = [];
+
+  if (a.appId !== b.appId) {
+    reasons.push(`appId mismatch: "${a.appId}" vs "${b.appId}"`);
+  }
+
+  if (a.version !== b.version) {
+    reasons.push(`version mismatch: ${a.version} vs ${b.version}`);
+  }
+
+  const aActionIds = a.actions.map((act) => act.id).sort();
+  const bActionIds = b.actions.map((act) => act.id).sort();
+  if (JSON.stringify(aActionIds) !== JSON.stringify(bActionIds)) {
+    reasons.push(
+      `actions mismatch: [${aActionIds.join(", ")}] vs [${bActionIds.join(", ")}]`,
+    );
+  }
+
+  if (a.minParticipants !== b.minParticipants) {
+    reasons.push(
+      `minParticipants mismatch: ${a.minParticipants} vs ${b.minParticipants}`,
+    );
+  }
+
+  if (a.maxParticipants !== b.maxParticipants) {
+    reasons.push(
+      `maxParticipants mismatch: ${a.maxParticipants} vs ${b.maxParticipants}`,
+    );
+  }
+
+  return { compatible: reasons.length === 0, reasons };
 }
