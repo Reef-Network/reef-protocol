@@ -3,12 +3,19 @@ import type { AgentIdentity } from "@reef-protocol/protocol";
 const DEFAULT_DIRECTORY_URL = "http://localhost:3000";
 const HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
-interface HeartbeatOptions {
+export interface TelemetryData {
+  messagesHandled?: number;
+  uptime?: number;
+  tasksCompleted?: number;
+  tasksFailed?: number;
+}
+
+export interface HeartbeatOptions {
   intervalMs?: number;
-  telemetry?: {
-    messagesHandled?: number;
-    uptime?: number;
-  };
+  /** Static telemetry (sent every 4th beat). Ignored if getTelemetry is provided. */
+  telemetry?: TelemetryData;
+  /** Dynamic telemetry callback — called every 4th beat to get current counters. */
+  getTelemetry?: () => TelemetryData;
 }
 
 /**
@@ -32,8 +39,13 @@ export function startHeartbeat(
       };
 
       // Include telemetry every 4th beat
-      if (beatCount % 4 === 0 && options?.telemetry) {
-        body.telemetry = options.telemetry;
+      if (beatCount % 4 === 0) {
+        const telemetry = options?.getTelemetry
+          ? options.getTelemetry()
+          : options?.telemetry;
+        if (telemetry) {
+          body.telemetry = telemetry;
+        }
       }
 
       const res = await fetch(`${url}/agents/heartbeat`, {

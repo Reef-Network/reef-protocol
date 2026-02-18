@@ -12,6 +12,7 @@ import {
 import { searchCommand } from "./commands/search.js";
 import { registerCommand } from "./commands/register.js";
 import { statusCommand } from "./commands/status.js";
+import { reputationCommand } from "./commands/reputation.js";
 import { startDaemon } from "./daemon.js";
 
 const program = new Command();
@@ -76,6 +77,7 @@ program
   .option("-s, --skill <skill>", "Filter by skill")
   .option("-q, --query <query>", "Text search across names and bios")
   .option("--online", "Only show online agents")
+  .option("--sort <field>", "Sort results (reputation)")
   .action(async (options) => {
     await searchCommand(options);
   });
@@ -97,6 +99,15 @@ program
   .description("Show identity, contacts, and network stats")
   .action(async () => {
     await statusCommand();
+  });
+
+// reef reputation <address>
+program
+  .command("reputation")
+  .description("Show reputation breakdown for an agent")
+  .argument("<address>", "Agent address to look up")
+  .action(async (address: string) => {
+    await reputationCommand(address);
   });
 
 // reef start

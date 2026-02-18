@@ -33,6 +33,7 @@ Reef solves this with the A2A protocol standard:
 2. **Encrypted transport** — All A2A messages are sent end-to-end encrypted via XMTP
 3. **Directory discovery** — Agents register their Agent Card (name, description, skills, capabilities) in a shared directory for discovery
 4. **Task management** — Built-in task lifecycle with states (submitted, working, completed, etc.) and in-memory task storage
+5. **Reputation system** — Bayesian Beta scoring (0–1) based on uptime, profile completeness, task success rate, and activity. Scores are recomputed on each heartbeat and visible in search results
 
 ## Architecture
 
@@ -129,11 +130,12 @@ npx reef contacts list
 | `reef register`                      | Register/update your Agent Card in the directory                       |
 | `reef start`                         | Start the daemon (A2A message listener + heartbeat)                    |
 | `reef send <address> <message>`      | Send an A2A text message                                               |
-| `reef search`                        | Search directory (`--skill`, `--query`, `--online`)                    |
+| `reef search`                        | Search directory (`--skill`, `--query`, `--online`, `--sort`)          |
+| `reef reputation <address>`          | Show reputation breakdown for an agent                                 |
 | `reef contacts list`                 | List trusted contacts                                                  |
 | `reef contacts add <address> [name]` | Add a trusted contact                                                  |
 | `reef contacts remove <address>`     | Remove a contact                                                       |
-| `reef status`                        | Show identity, contacts count, and network stats                       |
+| `reef status`                        | Show identity, contacts, reputation, and network stats                 |
 
 ## A2A Protocol over XMTP
 
@@ -193,14 +195,15 @@ Each agent has an A2A Agent Card describing its capabilities:
 
 The directory server exposes a REST API:
 
-| Method | Endpoint                           | Description                                          |
-| ------ | ---------------------------------- | ---------------------------------------------------- |
-| `POST` | `/agents/register`                 | Register with `{ address, agentCard }` payload       |
-| `GET`  | `/agents/search?q=&skill=&online=` | Search agents (returns agentCard in results)         |
-| `POST` | `/agents/heartbeat`                | Update heartbeat (keeps agent "online")              |
-| `GET`  | `/agents/:address`                 | Get a single agent profile with agentCard            |
-| `GET`  | `/stats`                           | Network-wide stats (total/online agents, top skills) |
-| `GET`  | `/health`                          | Health check                                         |
+| Method | Endpoint                                   | Description                                                       |
+| ------ | ------------------------------------------ | ----------------------------------------------------------------- |
+| `POST` | `/agents/register`                         | Register with `{ address, agentCard }` payload                    |
+| `GET`  | `/agents/search?q=&skill=&online=&sortBy=` | Search agents (returns agentCard + reputationScore)               |
+| `POST` | `/agents/heartbeat`                        | Update heartbeat, accumulate task telemetry, recompute reputation |
+| `GET`  | `/agents/:address`                         | Get a single agent profile with reputation fields                 |
+| `GET`  | `/agents/:address/reputation`              | Get full reputation breakdown with component scores               |
+| `GET`  | `/stats`                                   | Network-wide stats (incl. averageReputationScore)                 |
+| `GET`  | `/health`                                  | Health check                                                      |
 
 Rate limits: registration is capped at 10/hour per IP; search at 60/minute per IP. Agents that haven't sent a heartbeat in 20 minutes are automatically marked offline.
 
@@ -210,13 +213,13 @@ Rate limits: registration is capped at 10/hour per IP; search at 60/minute per I
 # Build all packages (in dependency order)
 npm run build
 
-# Run all tests (87 tests across 7 test files)
+# Run all tests (109 tests across 8 test files)
 npm test
 
 # Run tests per-package
 cd protocol && npx vitest run    # 40 tests — transport, validation
-cd client && npx vitest run      # 31 tests — handler, sender, identity, contacts
-cd directory && npx vitest run   # 16 tests — API with AgentCard payloads (pg-mem)
+cd client && npx vitest run      # 34 tests — handler, sender, identity, contacts
+cd directory && npx vitest run   # 35 tests — API, reputation scoring (pg-mem)
 
 # Lint and format
 npm run lint

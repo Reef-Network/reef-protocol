@@ -6,6 +6,7 @@ interface SearchOptions {
   skill?: string;
   query?: string;
   online?: boolean;
+  sort?: string;
 }
 
 export async function searchCommand(options: SearchOptions): Promise<void> {
@@ -15,6 +16,7 @@ export async function searchCommand(options: SearchOptions): Promise<void> {
   if (options.query) params.set("q", options.query);
   if (options.skill) params.set("skill", options.skill);
   if (options.online) params.set("online", "true");
+  if (options.sort === "reputation") params.set("sortBy", "reputation");
 
   const url = `${directoryUrl}/agents/search?${params.toString()}`;
 
@@ -33,6 +35,7 @@ export async function searchCommand(options: SearchOptions): Promise<void> {
         skills?: string[];
         availability: string;
         agentCard?: AgentCard | null;
+        reputationScore?: number;
       }>;
     };
 
@@ -43,7 +46,11 @@ export async function searchCommand(options: SearchOptions): Promise<void> {
 
     console.log(`Found ${data.agents.length} agent(s):\n`);
     for (const agent of data.agents) {
-      console.log(`  ${agent.name}`);
+      const scoreLabel =
+        agent.reputationScore != null
+          ? ` [${agent.reputationScore.toFixed(2)}]`
+          : "";
+      console.log(`  ${agent.name}${scoreLabel}`);
       console.log(`    Address:      ${agent.address}`);
       console.log(`    Availability: ${agent.availability}`);
       if (agent.bio) console.log(`    Bio:          ${agent.bio}`);

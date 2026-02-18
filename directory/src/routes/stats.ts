@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Op } from "sequelize";
+import { Op, fn, col } from "sequelize";
 import { Agent } from "../models/Agent.js";
 import { Snapshot } from "../models/Snapshot.js";
 import { config } from "../config.js";
@@ -40,7 +40,16 @@ async function computeLiveStats() {
     .slice(0, 10)
     .map(([skill]) => skill);
 
-  return { totalAgents, onlineAgents, topSkills };
+  // Compute average reputation score
+  const avgResult = (await Agent.findOne({
+    attributes: [[fn("AVG", col("reputation_score")), "avgScore"]],
+    raw: true,
+  })) as unknown as { avgScore: number | null } | null;
+  const averageReputationScore = avgResult?.avgScore
+    ? Math.round(avgResult.avgScore * 1000) / 1000
+    : 0.5;
+
+  return { totalAgents, onlineAgents, topSkills, averageReputationScore };
 }
 
 /**
@@ -54,10 +63,20 @@ statsRouter.get("/", async (_req, res, next) => {
     });
 
     if (snapshot) {
+      // Compute live average reputation even when using snapshot for other stats
+      const avgResult = (await Agent.findOne({
+        attributes: [[fn("AVG", col("reputation_score")), "avgScore"]],
+        raw: true,
+      })) as unknown as { avgScore: number | null } | null;
+      const averageReputationScore = avgResult?.avgScore
+        ? Math.round(avgResult.avgScore * 1000) / 1000
+        : 0.5;
+
       res.json({
         totalAgents: snapshot.total_agents,
         onlineAgents: snapshot.online_agents,
         topSkills: snapshot.top_skills,
+        averageReputationScore,
         capturedAt: snapshot.captured_at.toISOString(),
       });
     } else {

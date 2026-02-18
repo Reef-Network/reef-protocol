@@ -11,6 +11,11 @@ export interface AgentAttributes {
   reef_version: string | null;
   last_heartbeat: Date | null;
   agent_card: AgentCard | null;
+  reputation_score: number;
+  tasks_completed: number;
+  tasks_failed: number;
+  total_interactions: number;
+  reputation_updated_at: Date | null;
 }
 
 export class Agent extends Model<AgentAttributes> {
@@ -23,6 +28,11 @@ export class Agent extends Model<AgentAttributes> {
   declare reef_version: string | null;
   declare last_heartbeat: Date | null;
   declare agent_card: AgentCard | null;
+  declare reputation_score: number;
+  declare tasks_completed: number;
+  declare tasks_failed: number;
+  declare total_interactions: number;
+  declare reputation_updated_at: Date | null;
   declare readonly created_at: Date;
   declare readonly updated_at: Date;
 }
@@ -67,6 +77,31 @@ export function initAgentModel(sequelize: Sequelize): void {
       },
       agent_card: {
         type: DataTypes.JSONB,
+        allowNull: true,
+        defaultValue: null,
+      },
+      reputation_score: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0.5,
+      },
+      tasks_completed: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      tasks_failed: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      total_interactions: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      reputation_updated_at: {
+        type: DataTypes.DATE,
         allowNull: true,
         defaultValue: null,
       },

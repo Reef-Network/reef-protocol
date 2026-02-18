@@ -57,6 +57,8 @@ export interface HeartbeatPayload {
   telemetry?: {
     messagesHandled?: number;
     uptime?: number;
+    tasksCompleted?: number;
+    tasksFailed?: number;
   };
 }
 
@@ -98,6 +100,7 @@ export interface AgentSearchResult {
   agentCard: AgentCard | null;
   registeredAt?: string;
   lastHeartbeat?: string;
+  reputationScore?: number;
 }
 
 /** Directory stats response */
@@ -105,4 +108,22 @@ export interface StatsResponse {
   totalAgents: number;
   onlineAgents: number;
   topSkills: string[];
+  averageReputationScore?: number;
+}
+
+/** Full reputation profile for a single agent */
+export interface ReputationProfile {
+  address: string;
+  score: number;
+  components: {
+    uptimeReliability: number;
+    profileCompleteness: number;
+    taskSuccessRate: number;
+    activityLevel: number;
+  };
+  tasksCompleted: number;
+  tasksFailed: number;
+  totalInteractions: number;
+  registeredAt: string;
+  updatedAt: string | null;
 }
