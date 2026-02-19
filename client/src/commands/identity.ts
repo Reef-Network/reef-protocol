@@ -4,33 +4,46 @@ import {
   generateIdentity,
   getConfigDir,
 } from "../identity.js";
+import type { AgentIdentity } from "@reef-protocol/protocol";
 
-export function identityCommand(options: { generate?: boolean }): void {
+function printIdentity(label: string, identity: AgentIdentity): void {
+  console.log(`${label}:`);
+  console.log(`  Address:    ${identity.address}`);
+  console.log(`  Public Key: ${identity.publicKey}`);
+  console.log(`  XMTP Env:   ${identity.xmtpEnv}`);
+  console.log(`  Created:    ${identity.createdAt}`);
+}
+
+export function identityCommand(options: {
+  generate?: boolean;
+  force?: boolean;
+}): void {
   const configDir = getConfigDir();
 
   if (options.generate) {
-    const identity = generateIdentity(configDir);
-    console.log("Generated new identity:");
-    console.log(`  Address:    ${identity.address}`);
-    console.log(`  Public Key: ${identity.publicKey}`);
-    console.log(`  XMTP Env:   ${identity.xmtpEnv}`);
-    console.log(`  Created:    ${identity.createdAt}`);
+    const existing = loadIdentity(configDir);
+    if (existing && !options.force) {
+      printIdentity(
+        "Identity already exists (use --force to regenerate)",
+        existing,
+      );
+      return;
+    }
+    const identity = generateIdentity(configDir, { force: options.force });
+    printIdentity(
+      options.force && existing
+        ? "Regenerated identity"
+        : "Generated new identity",
+      identity,
+    );
     return;
   }
 
   const existing = loadIdentity(configDir);
   if (existing) {
-    console.log("Current identity:");
-    console.log(`  Address:    ${existing.address}`);
-    console.log(`  Public Key: ${existing.publicKey}`);
-    console.log(`  XMTP Env:   ${existing.xmtpEnv}`);
-    console.log(`  Created:    ${existing.createdAt}`);
+    printIdentity("Current identity", existing);
   } else {
     const identity = getOrCreateIdentity(configDir);
-    console.log("Created new identity:");
-    console.log(`  Address:    ${identity.address}`);
-    console.log(`  Public Key: ${identity.publicKey}`);
-    console.log(`  XMTP Env:   ${identity.xmtpEnv}`);
-    console.log(`  Created:    ${identity.createdAt}`);
+    printIdentity("Created new identity", identity);
   }
 }

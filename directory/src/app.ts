@@ -9,6 +9,9 @@ import { ZodError } from "zod";
 
 export const app = express();
 
+// Trust the first proxy (Railway, Docker, etc.) so rate limiting uses the real client IP
+app.set("trust proxy", 1);
+
 // Middleware
 app.use(helmet());
 app.use(cors());

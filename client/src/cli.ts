@@ -46,7 +46,11 @@ program
 program
   .command("identity")
   .description("Show current identity or generate a new one")
-  .option("-g, --generate", "Generate a new identity (overwrites existing)")
+  .option("-g, --generate", "Generate identity (idempotent — reuses existing)")
+  .option(
+    "-f, --force",
+    "Force regeneration (overwrites existing, deletes xmtp.db)",
+  )
   .action((options) => {
     identityCommand(options);
   });
@@ -311,7 +315,7 @@ program
 program
   .command("start")
   .description("Start the Reef daemon (long-running A2A message listener)")
-  .option("-n, --name <name>", "Agent display name")
+  .requiredOption("-n, --name <name>", "Agent display name")
   .option("-b, --bio <bio>", "Agent description / bio")
   .action(async (options) => {
     await startDaemon(options);
