@@ -1,5 +1,7 @@
 /** A2A message sending functions over XMTP */
 
+import * as fs from "node:fs";
+import * as path from "node:path";
 import type { Agent } from "@xmtp/agent-sdk";
 import type { Conversation } from "@xmtp/node-sdk";
 import type { Message } from "@reef-protocol/protocol";
@@ -104,4 +106,42 @@ export async function sendTextMessageToGroup(
     conversation,
     request as unknown as Record<string, unknown>,
   );
+}
+
+/**
+ * Send a text message via the running daemon's local HTTP API.
+ * Returns true if the daemon handled the send, false if no daemon is running.
+ */
+export async function sendViaDaemon(
+  address: string,
+  text: string,
+  configDir: string,
+): Promise<boolean> {
+  const lockPath = path.join(configDir, "daemon.lock");
+  if (!fs.existsSync(lockPath)) return false;
+
+  const port = parseInt(fs.readFileSync(lockPath, "utf-8").trim(), 10);
+  if (isNaN(port)) return false;
+
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address, text }),
+    });
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string };
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    return true;
+  } catch (err) {
+    // Connection refused means daemon isn't actually running (stale lock)
+    if (
+      (err as NodeJS.ErrnoException).code === "ECONNREFUSED" ||
+      (err as Error).message.includes("ECONNREFUSED")
+    ) {
+      return false;
+    }
+    throw err;
+  }
 }

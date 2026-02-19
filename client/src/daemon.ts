@@ -1,4 +1,7 @@
 import "dotenv/config";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as http from "node:http";
 import {
   buildReefAgentCard,
   buildSkill,
@@ -21,15 +24,21 @@ import { installWellKnownApps } from "./app-store.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { loadConfig } from "./config.js";
 import { isContact } from "./contacts.js";
+import { sendTextMessage } from "./sender.js";
 import type { MessageContext } from "@xmtp/agent-sdk";
 
 const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
+
+export interface DaemonOptions {
+  name?: string;
+  bio?: string;
+}
 
 /**
  * Start the Reef daemon — long-running process that listens for messages,
  * sends heartbeats, and registers with the directory.
  */
-export async function startDaemon(): Promise<void> {
+export async function startDaemon(opts?: DaemonOptions): Promise<void> {
   const configDir = getConfigDir();
   const identity = getOrCreateIdentity(configDir);
 
@@ -42,16 +51,45 @@ export async function startDaemon(): Promise<void> {
   const agent = await createReefAgent(configDir);
   console.log(`[reef] XMTP agent initialized`);
 
-  // Build AgentCard from env vars
-  const agentName =
-    process.env.REEF_AGENT_NAME || `Agent ${identity.address.slice(0, 8)}`;
-  const agentDescription = process.env.REEF_AGENT_BIO || "";
+  // Build AgentCard — name from opts > env > error
+  const agentName = opts?.name || process.env.REEF_AGENT_NAME;
+  if (!agentName) {
+    console.error(
+      "[reef] No agent name provided. Use --name or set REEF_AGENT_NAME.",
+    );
+    process.exit(1);
+  }
+  const agentDescription = opts?.bio || process.env.REEF_AGENT_BIO || "";
   const skillStrings = process.env.REEF_AGENT_SKILLS
     ? process.env.REEF_AGENT_SKILLS.split(",").map((s) => s.trim())
     : [];
   const skills = skillStrings.map((s) =>
     buildSkill(s.toLowerCase().replace(/\s+/g, "-"), s, s, [s]),
   );
+
+  // Install well-known app markdowns and load all apps
+  const newApps = installWellKnownApps(configDir);
+  if (newApps.length > 0) {
+    console.log(`[reef] Installed app markdowns: ${newApps.join(", ")}`);
+  }
+  const appRouter = new AppRouter();
+  const loadedApps = appRouter.autoLoadDefaults(configDir);
+  if (loadedApps.length > 0) {
+    console.log(`[reef] Loaded apps: ${loadedApps.join(", ")}`);
+  }
+
+  // Auto-register app-derived skills (Issue #1)
+  for (const appId of appRouter.listApps()) {
+    const manifest = appRouter.get(appId);
+    if (manifest) {
+      skills.push(
+        buildSkill(appId, manifest.name, manifest.description, [
+          appId,
+          manifest.category ?? "app",
+        ]),
+      );
+    }
+  }
 
   const agentCard = buildReefAgentCard(
     identity.address,
@@ -130,20 +168,9 @@ export async function startDaemon(): Promise<void> {
     },
   });
 
-  // Create task store, logic handler, and app router
+  // Create task store and logic handler
   const taskStore = new InMemoryTaskStore();
   const logicHandler = createDefaultLogicHandler();
-
-  // Install well-known app markdowns and load all apps
-  const newApps = installWellKnownApps(configDir);
-  if (newApps.length > 0) {
-    console.log(`[reef] Installed app markdowns: ${newApps.join(", ")}`);
-  }
-  const appRouter = new AppRouter();
-  const loadedApps = appRouter.autoLoadDefaults(configDir);
-  if (loadedApps.length > 0) {
-    console.log(`[reef] Loaded apps: ${loadedApps.join(", ")}`);
-  }
 
   // Listen for messages
   agent.on("text", async (ctx: MessageContext<string>) => {
@@ -193,10 +220,59 @@ export async function startDaemon(): Promise<void> {
   >[0]);
   console.log(`[reef] Daemon running. Listening for A2A messages...`);
 
+  // Start local HTTP API so `reef send` can delegate to the daemon
+  const lockPath = path.join(configDir, "daemon.lock");
+  const httpServer = http.createServer(async (req, res) => {
+    if (req.method === "POST" && req.url === "/send") {
+      let body = "";
+      req.on("data", (chunk: Buffer) => {
+        body += chunk.toString();
+      });
+      req.on("end", async () => {
+        try {
+          const { address, text } = JSON.parse(body) as {
+            address: string;
+            text: string;
+          };
+          if (!address || !text) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "address and text required" }));
+            return;
+          }
+          await sendTextMessage(agent, address, text);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: true }));
+        } catch (err) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: (err as Error).message }));
+        }
+      });
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+
+  // Listen on a random port, write it to daemon.lock
+  await new Promise<void>((resolve) => {
+    httpServer.listen(0, "127.0.0.1", () => {
+      const addr = httpServer.address() as { port: number };
+      fs.writeFileSync(lockPath, String(addr.port));
+      console.log(`[reef] Local API on port ${addr.port}`);
+      resolve();
+    });
+  });
+
   // Graceful shutdown
   const shutdown = async () => {
     console.log("\n[reef] Shutting down...");
     stopHeartbeat();
+    httpServer.close();
+    try {
+      fs.unlinkSync(lockPath);
+    } catch {
+      // lock file may already be gone
+    }
     await agent.stop();
     process.exit(0);
   };
