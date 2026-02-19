@@ -2,6 +2,7 @@ import { createUser } from "@xmtp/agent-sdk";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import { keccak256, toBytes } from "viem";
 import type { AgentIdentity } from "@reef-protocol/protocol";
 
 const DEFAULT_CONFIG_DIR = path.join(process.env.HOME || "~", ".reef");
@@ -16,14 +17,47 @@ function ensureConfigDir(configDir: string): void {
   }
 }
 
+export interface GenerateOptions {
+  force?: boolean;
+  seed?: string;
+}
+
 /**
- * Generate a new agent identity and save it to the config directory.
+ * Generate (or return existing) agent identity.
+ *
+ * Idempotent by default: if identity.json already exists, returns it without
+ * overwriting. Pass `force: true` to regenerate (also deletes xmtp.db).
+ *
+ * Supports deterministic generation via `options.seed` or the `REEF_SEED`
+ * env var — same seed always produces the same identity.
  */
-export function generateIdentity(configDir?: string): AgentIdentity {
+export function generateIdentity(
+  configDir?: string,
+  options?: GenerateOptions,
+): AgentIdentity {
   const dir = configDir || getConfigDir();
   ensureConfigDir(dir);
 
-  const user = createUser();
+  // Idempotent: return existing identity unless force is set
+  if (!options?.force) {
+    const existing = loadIdentity(dir);
+    if (existing) return existing;
+  }
+
+  // When forcing regeneration, clean up stale XMTP state
+  if (options?.force) {
+    for (const file of ["xmtp.db", "xmtp.db-shm", "xmtp.db-wal"]) {
+      const p = path.join(dir, file);
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+    }
+  }
+
+  // Derive key from seed (deterministic) or generate random
+  const seedString = options?.seed || process.env.REEF_SEED;
+  const user = seedString
+    ? createUser(keccak256(toBytes(seedString)))
+    : createUser();
+
   const xmtpEnv = process.env.REEF_XMTP_ENV || "production";
 
   const identity: AgentIdentity = {

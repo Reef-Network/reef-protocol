@@ -219,6 +219,9 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
     typeof agent.start
   >[0]);
   console.log(`[reef] Daemon running. Listening for A2A messages...`);
+  console.log(
+    `[reef] TIP: Run \`reef messages --watch\` in another terminal to monitor incoming messages.`,
+  );
 
   // Start local HTTP API so `reef send` can delegate to the daemon
   const lockPath = path.join(configDir, "daemon.lock");

@@ -174,7 +174,9 @@ describe("serializeAppMarkdown", () => {
     expect(manifest.type).toBe("p2p");
     expect(manifest.category).toBe("game");
     expect(manifest.actions.map((a) => a.id).sort()).toEqual([
+      "accept",
       "move",
+      "propose",
       "result",
     ]);
     expect(manifest.rules).toContain("# Tic-Tac-Toe");
