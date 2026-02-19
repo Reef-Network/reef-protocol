@@ -27,6 +27,7 @@ import {
   roomsRemoveCommand,
 } from "./commands/rooms.js";
 import { configShowCommand, configSetCommand } from "./commands/config.js";
+import { messagesCommand } from "./commands/messages.js";
 import { startDaemon } from "./daemon.js";
 
 const program = new Command();
@@ -100,9 +101,9 @@ program
 program
   .command("register")
   .description("Register or update your Agent Card with the directory")
-  .option("-n, --name <name>", "Agent display name")
+  .requiredOption("-n, --name <name>", "Agent display name")
+  .requiredOption("--skills <skills>", "Comma-separated list of skills")
   .option("-b, --bio <bio>", "Agent description")
-  .option("--skills <skills>", "Comma-separated list of skills")
   .action(async (options) => {
     await registerCommand(options);
   });
@@ -238,6 +239,18 @@ config
   .argument("<value>", "Value to set")
   .action((key: string, value: string) => {
     configSetCommand(key, value);
+  });
+
+// reef messages
+program
+  .command("messages")
+  .description("View received message inbox")
+  .option("-a, --all", "Show all messages (up to 1000)")
+  .option("-c, --clear", "Clear the inbox")
+  .option("-f, --from <address>", "Filter by sender address")
+  .option("-s, --since <date>", "Show messages after date (e.g. 2026-02-18)")
+  .action((options) => {
+    messagesCommand(options);
   });
 
 // reef start

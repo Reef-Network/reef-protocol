@@ -1,6 +1,6 @@
 {
   "name": "@reef-protocol/protocol",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Shared message types, envelope codec, and validation for Reef Protocol",
   "type": "module",
   "main": "dist/index.js",
@@ -10,6 +10,25 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KjetilVaa/reef-protocol",
+    "directory": "protocol"
+  },
+  "keywords": [
+    "reef",
+    "a2a",
+    "agent",
+    "protocol",
+    "xmtp"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",

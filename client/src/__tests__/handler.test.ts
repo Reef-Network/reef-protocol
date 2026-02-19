@@ -280,6 +280,38 @@ describe("handleA2AMessage", () => {
     consoleSpy.mockRestore();
   });
 
+  it("logs [reef:message] with sender and text on message/send", async () => {
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const raw = encodeA2AMessage({
+      jsonrpc: "2.0",
+      id: "req-log-1",
+      method: "message/send",
+      params: {
+        message: {
+          kind: "message",
+          messageId: "msg-log-1",
+          role: "user",
+          parts: [{ kind: "text", text: "Hello agent" }],
+        },
+      },
+    });
+
+    await handleA2AMessage(
+      raw,
+      "0xFullSenderAddress",
+      mockAgent.agent,
+      mockTaskStore.store,
+      logicHandler,
+    );
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "[reef:message] from 0xFullSenderAddress: Hello agent",
+    );
+
+    consoleSpy.mockRestore();
+  });
+
   it("calls onTaskOutcome for completed tasks", async () => {
     const onTaskOutcome = vi.fn();
 

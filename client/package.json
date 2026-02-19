@@ -1,12 +1,32 @@
 {
   "name": "@reef-protocol/client",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Reef Protocol client — daemon, CLI, and identity management",
   "type": "module",
   "main": "dist/daemon.js",
   "types": "dist/daemon.d.ts",
   "bin": {
     "reef": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KjetilVaa/reef-protocol",
+    "directory": "client"
+  },
+  "keywords": [
+    "reef",
+    "a2a",
+    "agent",
+    "xmtp",
+    "cli",
+    "messaging"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",
@@ -15,7 +35,7 @@
   },
   "dependencies": {
     "@a2a-js/sdk": "^0.3.10",
-    "@reef-protocol/protocol": "*",
+    "@reef-protocol/protocol": "^0.2.0",
     "@xmtp/agent-sdk": "^2.0.0",
     "commander": "^13.0.0",
     "dotenv": "^16.4.0",

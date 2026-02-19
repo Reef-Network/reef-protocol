@@ -45,7 +45,7 @@ function makeAgentCard(overrides: Record<string, unknown> = {}) {
     name: "Test Agent",
     description: "A test agent",
     url: "xmtp://0xAgent001",
-    version: "0.2.0",
+    version: "0.2.1",
     protocolVersion: "0.3.0",
     skills: [
       {

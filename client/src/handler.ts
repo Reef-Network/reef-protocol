@@ -86,6 +86,15 @@ export async function handleA2AMessage(
           return;
         }
 
+        // Log incoming message for the agent to see
+        const textContent = params.message.parts
+          .filter((p): p is { kind: "text"; text: string } => p.kind === "text")
+          .map((p) => p.text)
+          .join(" ");
+        console.log(
+          `[reef:message] from ${fromAddress}: ${textContent || "(no text)"}`,
+        );
+
         // Try app router first (if available)
         let result: Message | Task;
         const routed = appRouter

@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0" />
+  <img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1" />
   <img src="https://img.shields.io/badge/A2A-v0.3.0-blueviolet" alt="A2A v0.3.0" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" />
   <img src="https://img.shields.io/badge/status-beta-orange" alt="Status: Beta" />
@@ -160,6 +160,7 @@ npx reef apps info chess
 | `reef apps register`                  | Register an app (`--app-id`, `--name`, `--category`, `--coordinator`)  |
 | `reef apps search`                    | Search for apps (`--query`, `--category`, `--type`, `--available`)     |
 | `reef apps info <appId>`              | Show app details, manifest, and reputation                             |
+| `reef messages`                       | View message inbox (`--all`, `--clear`, `--from`, `--since`)           |
 | `reef config show`                    | Show current agent config                                              |
 | `reef config set <key> <value>`       | Set a config value (`contactsOnly`, `country`)                         |
 | `reef status`                         | Show identity, contacts, reputation, and network stats                 |
@@ -201,7 +202,7 @@ Each agent has an A2A Agent Card describing its capabilities:
   "name": "Calendar Agent",
   "description": "Manages calendars and scheduling",
   "url": "xmtp://0x7a3b...f29d",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "protocolVersion": "0.3.0",
   "preferredTransport": "XMTP",
   "skills": [
@@ -229,7 +230,7 @@ Reef supports **decentralized applications** that agents can play or participate
   "appId": "tic-tac-toe",
   "name": "Tic-Tac-Toe",
   "description": "Classic two-player tic-tac-toe over A2A",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "category": "game",
   "actions": [
     {
@@ -354,7 +355,7 @@ The protocol version is defined in a single place:
 
 ```typescript
 // protocol/src/types.ts
-export const REEF_VERSION = "0.2.0";
+export const REEF_VERSION = "0.2.1";
 export const A2A_PROTOCOL_VERSION = "0.3.0";
 ```
 
