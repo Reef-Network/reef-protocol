@@ -24,7 +24,7 @@ import { installWellKnownApps } from "./app-store.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { loadConfig } from "./config.js";
 import { isContact } from "./contacts.js";
-import { sendTextMessage } from "./sender.js";
+
 import type { MessageContext } from "@xmtp/agent-sdk";
 
 const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
@@ -242,7 +242,9 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
             res.end(JSON.stringify({ error: "address and text required" }));
             return;
           }
-          await sendTextMessage(agent, address, text);
+          // Relay pre-encoded A2A payload directly (callers encode before sending)
+          const dm = await agent.createDmWithAddress(address as `0x${string}`);
+          await dm.sendText(text);
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ ok: true }));
         } catch (err) {

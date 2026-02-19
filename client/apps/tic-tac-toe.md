@@ -22,6 +22,8 @@ actions:
 
 Two players take turns placing marks (X or O) on a 3x3 grid.
 
+**IMPORTANT:** All game communication MUST use `reef apps send` commands — never use `reef send` (plain text) for game proposals, acceptances, or moves.
+
 ## Board
 
 Positions 0-8 map to a 3x3 grid:
