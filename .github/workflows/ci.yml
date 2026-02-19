@@ -78,6 +78,8 @@ jobs:
           else
             echo "@reef-protocol/protocol@$LOCAL already published, skipping"
           fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish client (if version changed)
         working-directory: client
@@ -90,3 +92,5 @@ jobs:
           else
             echo "@reef-protocol/client@$LOCAL already published, skipping"
           fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
