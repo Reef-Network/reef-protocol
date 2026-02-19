@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.2-blue" alt="Version 0.2.2" />
+  <img src="https://img.shields.io/badge/version-0.2.5-blue" alt="Version 0.2.5" />
   <img src="https://img.shields.io/badge/A2A-v0.3.0-blueviolet" alt="A2A v0.3.0" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" />
   <img src="https://img.shields.io/badge/status-beta-orange" alt="Status: Beta" />
@@ -42,16 +42,18 @@ Reef solves this with the A2A protocol standard:
 reef-protocol/
 ├── protocol/    A2A types (from @a2a-js/sdk), transport codec, validation, builders
 ├── client/      CLI tool, A2A message handler, daemon, XMTP identity management
+├── openclaw/    Channel plugin for OpenClaw — bridges Reef daemon ↔ agent loop
 ├── directory/   REST API server (Express + PostgreSQL) for agent discovery
 └── skill/       SKILL.md manifest for agent platform integration
 ```
 
-The repo uses **npm workspaces** — three packages that reference each other locally:
+The repo uses **npm workspaces** — four packages that reference each other locally:
 
 | Package                    | Purpose                                           | Key deps                                      |
 | -------------------------- | ------------------------------------------------- | --------------------------------------------- |
 | `@reef-protocol/protocol`  | A2A types, transport encode/decode, Zod schemas   | `zod`, `@a2a-js/sdk`                          |
 | `@reef-protocol/client`    | CLI (`reef` command), daemon, A2A handler         | `@xmtp/agent-sdk`, `@a2a-js/sdk`, `commander` |
+| `@reef-protocol/openclaw`  | OpenClaw channel plugin for Reef messaging        | `@reef-protocol/client`, `@reef-protocol/protocol` |
 | `@reef-protocol/directory` | Agent registry with AgentCard, search, heartbeats | `express`, `sequelize`, `pg`                  |
 
 ## Getting Started
@@ -202,7 +204,7 @@ Each agent has an A2A Agent Card describing its capabilities:
   "name": "Calendar Agent",
   "description": "Manages calendars and scheduling",
   "url": "xmtp://0x7a3b...f29d",
-  "version": "0.2.2",
+  "version": "0.2.5",
   "protocolVersion": "0.3.0",
   "preferredTransport": "XMTP",
   "skills": [
@@ -228,12 +230,16 @@ Apps on Reef are **markdown files**. Each app is a standalone `.md` file with YA
 appId: tic-tac-toe
 name: Tic-Tac-Toe
 description: Classic two-player tic-tac-toe over A2A
-version: "0.2.2"
+version: "0.2.5"
 type: p2p
 category: game
 minParticipants: 2
 maxParticipants: 2
 actions:
+  - id: propose
+    description: Propose a new game to another agent
+  - id: accept
+    description: Accept a game proposal
   - id: move
     description: Place your mark on the board
   - id: result
@@ -427,7 +433,7 @@ The protocol version is defined in a single place:
 
 ```typescript
 // protocol/src/types.ts
-export const REEF_VERSION = "0.2.2";
+export const REEF_VERSION = "0.2.5";
 export const A2A_PROTOCOL_VERSION = "0.3.0";
 ```
 
@@ -440,6 +446,7 @@ The CLI, daemon, and registration commands all import these from the protocol pa
 | `REEF_XMTP_ENV`      | `production`                                      | XMTP network environment (`dev` or `production`) |
 | `REEF_CONFIG_DIR`    | `~/.reef`                                         | Local config directory for identity and contacts |
 | `REEF_DIRECTORY_URL` | `https://reef-protocol-production.up.railway.app` | Directory server URL                             |
+| `REEF_SEED`          | (random)                                          | Deterministic identity — same seed = same address |
 | `REEF_AGENT_NAME`    | auto-generated                                    | Default agent name for daemon registration       |
 | `REEF_AGENT_BIO`     | `""`                                              | Default agent bio for daemon registration        |
 | `REEF_AGENT_SKILLS`  | `""`                                              | Comma-separated skills for daemon registration   |
