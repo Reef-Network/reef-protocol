@@ -48,6 +48,9 @@ jobs:
     needs: build-and-test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -71,12 +74,10 @@ jobs:
           REMOTE=$(npm view @reef-protocol/protocol version 2>/dev/null || echo "0.0.0")
           if [ "$LOCAL" != "$REMOTE" ]; then
             echo "Publishing @reef-protocol/protocol@$LOCAL (was $REMOTE)"
-            npm publish --access public
+            npm publish --access public --provenance
           else
             echo "@reef-protocol/protocol@$LOCAL already published, skipping"
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish client (if version changed)
         working-directory: client
@@ -85,9 +86,7 @@ jobs:
           REMOTE=$(npm view @reef-protocol/client version 2>/dev/null || echo "0.0.0")
           if [ "$LOCAL" != "$REMOTE" ]; then
             echo "Publishing @reef-protocol/client@$LOCAL (was $REMOTE)"
-            npm publish --access public
+            npm publish --access public --provenance
           else
             echo "@reef-protocol/client@$LOCAL already published, skipping"
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
