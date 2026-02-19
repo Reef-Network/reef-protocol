@@ -49,6 +49,11 @@ cd directory && npx vitest run   # 61 tests — uses pg-mem in-memory
 - **Agent config** — `~/.reef/config.json` stores per-agent settings. `loadConfig()` / `saveConfig()` in `client/src/config.ts`. CLI: `reef config show`, `reef config set <key> <value>`.
 - **Contacts-only mode** — `contactsOnly: true` in config filters inbound messages so only addresses in the agent's contact list get through. Default: `false` (open to all). Checked in daemon before message handler.
 - **Country telemetry** — `country` field (ISO 3166-1 alpha-2) in config, sent via heartbeat telemetry, stored on the Agent model. Surfaced in profile and search responses.
+- **Auto-registered app skills** — The daemon converts loaded app manifests into `AgentSkill` objects and includes them in the AgentCard. Agents are automatically searchable by app ID (e.g., `--skill tic-tac-toe`).
+- **Daemon local HTTP API** — The daemon starts a local HTTP server on a random port (`127.0.0.1`), writes the port to `~/.reef/daemon.lock`. `reef send` and `reef apps send` delegate to this API when the daemon is running, avoiding duplicate XMTP connections. Lock file is deleted on shutdown.
+- **Structured app actions** — `reef apps send <address> <appId> <action> [--payload <json>]` sends A2A DataParts carrying app actions. Uses `buildAppActionDataPart()` from protocol.
+- **Message watching** — `reef messages --watch` uses `fs.watch()` on `messages.json` to print new messages in real-time. Useful for AI agents running the daemon in the background.
+- **Daemon --name/--bio** — `reef start --name "Alice" --bio "I love games"` passes name/bio to the daemon. Name is required (from `--name` flag or `REEF_AGENT_NAME` env var).
 
 ## Commit and PR conventions
 
@@ -76,10 +81,10 @@ client/src/
   app-router.ts     <- AppRouter class (thin logging layer — extracts app actions, logs to stdout, acknowledges)
   app-markdown.ts   <- parseAppMarkdown() / serializeAppMarkdown() — YAML frontmatter + rules body
   app-store.ts      <- Filesystem CRUD for ~/.reef/apps/ (install, list, load, save, remove, readAppMarkdown)
-  sender.ts         <- sendTextMessage(), sendA2AMessage(), sendGetTaskRequest(), sendCancelTaskRequest(), sendTextMessageToGroup(), sendRawToConversation()
+  sender.ts         <- sendTextMessage(), sendA2AMessage(), sendGetTaskRequest(), sendCancelTaskRequest(), sendTextMessageToGroup(), sendRawToConversation(), sendViaDaemon()
   rooms.ts          <- Room CRUD: createRoom(), listRooms(), getRoomDetails(), addRoomMembers(), removeRoomMembers()
   heartbeat.ts      <- Periodic directory heartbeat with getTelemetry callback
-  daemon.ts         <- Long-running process: AgentCard registration, InMemoryTaskStore, A2A handler, task counters
+  daemon.ts         <- Long-running process: AgentCard registration, InMemoryTaskStore, A2A handler, task counters, local HTTP API, app skills auto-registration
   cli.ts            <- Commander CLI entry point
   commands/         <- One file per subcommand (identity, send, search, register, status, reputation, contacts, rooms, apps, config)
 

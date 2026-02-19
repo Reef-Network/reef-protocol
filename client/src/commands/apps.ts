@@ -2,6 +2,10 @@ import * as fs from "node:fs";
 import {
   buildAppManifest,
   buildAppAction,
+  buildAppActionDataPart,
+  createMessage,
+  createSendMessageRequest,
+  encodeA2AMessage,
   DEFAULT_DIRECTORY_URL,
   appManifestSchema,
 } from "@reef-protocol/protocol";
@@ -13,6 +17,8 @@ import {
   readAppMarkdown,
   saveApp,
 } from "../app-store.js";
+import { sendViaDaemon } from "../sender.js";
+import { createReefAgent } from "../agent.js";
 
 const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
 
@@ -263,6 +269,38 @@ export async function appsSearchCommand(options: SearchOptions): Promise<void> {
     }
     console.log();
   }
+}
+
+/** Send a structured app action to another agent */
+export async function appsSendCommand(
+  address: string,
+  appId: string,
+  action: string,
+  opts: { payload?: string },
+): Promise<void> {
+  const configDir = getConfigDir();
+  const payload = opts.payload ? JSON.parse(opts.payload) : {};
+  const dataPart = buildAppActionDataPart(appId, action, payload);
+  const message = createMessage("user", [dataPart]);
+  const request = createSendMessageRequest(message);
+  const encoded = encodeA2AMessage(
+    request as unknown as Record<string, unknown>,
+  );
+
+  console.log(`Sending ${appId}/${action} to ${address}...`);
+
+  // Try daemon API first, fall back to direct XMTP
+  const sentViaDaemon = await sendViaDaemon(address, encoded, configDir);
+  if (sentViaDaemon) {
+    console.log("App action sent (via daemon).");
+    return;
+  }
+
+  const agent = await createReefAgent(configDir);
+  const dm = await agent.createDmWithAddress(address as `0x${string}`);
+  await dm.sendText(encoded);
+  console.log("App action sent.");
+  await agent.stop();
 }
 
 export async function appsInfoCommand(appId: string): Promise<void> {

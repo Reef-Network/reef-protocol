@@ -21,6 +21,7 @@ import {
   appsReadCommand,
   appsCreateCommand,
   appsValidateCommand,
+  appsSendCommand,
 } from "./commands/apps.js";
 import {
   roomsCreateCommand,
@@ -261,6 +262,17 @@ apps
     appsValidateCommand(target);
   });
 
+apps
+  .command("send")
+  .description("Send a structured app action to another agent")
+  .argument("<address>", "Recipient agent address")
+  .argument("<appId>", "App identifier (e.g., tic-tac-toe)")
+  .argument("<action>", "Action name (e.g., move)")
+  .option("--payload <json>", "JSON payload", "{}")
+  .action(async (address: string, appId: string, action: string, options) => {
+    await appsSendCommand(address, appId, action, options);
+  });
+
 // reef config
 const config = program
   .command("config")
@@ -290,6 +302,7 @@ program
   .option("-c, --clear", "Clear the inbox")
   .option("-f, --from <address>", "Filter by sender address")
   .option("-s, --since <date>", "Show messages after date (e.g. 2026-02-18)")
+  .option("-w, --watch", "Watch for new messages in real-time")
   .action((options) => {
     messagesCommand(options);
   });
@@ -298,8 +311,10 @@ program
 program
   .command("start")
   .description("Start the Reef daemon (long-running A2A message listener)")
-  .action(async () => {
-    await startDaemon();
+  .option("-n, --name <name>", "Agent display name")
+  .option("-b, --bio <bio>", "Agent description / bio")
+  .action(async (options) => {
+    await startDaemon(options);
   });
 
 program.parse();
