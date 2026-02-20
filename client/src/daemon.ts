@@ -83,10 +83,7 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
     const manifest = appRouter.get(appId);
     if (manifest) {
       skills.push(
-        buildSkill(appId, manifest.name, manifest.description, [
-          appId,
-          manifest.category ?? "app",
-        ]),
+        buildSkill(appId, manifest.name, manifest.description, [appId]),
       );
     }
   }
@@ -191,33 +188,40 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
     const decoded = decodeA2AMessage(content);
     appendMessage(
       {
-        id: crypto.randomUUID(),
+        id: ctx.message.id,
         from: sender,
         text: content,
         method: decoded && isA2ARequest(decoded) ? decoded.method : undefined,
-        timestamp: new Date().toISOString(),
+        timestamp: ctx.message.sentAt.toISOString(),
       },
       configDir,
     );
 
-    await handleA2AMessage(
-      content,
-      sender,
-      agent,
-      taskStore,
-      logicHandler,
-      onTaskOutcome,
-      ctx.conversation,
-      appRouter,
-    );
+    // Only run built-in handler for protocol ops (tasks/get, tasks/cancel).
+    // message/send is handled by the OpenClaw plugin via messages.json.
+    const isMessageSend =
+      decoded && isA2ARequest(decoded) && decoded.method === "message/send";
+    if (!isMessageSend) {
+      await handleA2AMessage(
+        content,
+        sender,
+        agent,
+        taskStore,
+        logicHandler,
+        onTaskOutcome,
+        ctx.conversation,
+        appRouter,
+      );
+    }
   });
 
   // Accept all consent states: 0=Unknown, 1=Allowed, 2=Denied
   // The XMTP SDK types for AgentStreamingOptions are narrower than what
   // streamAllMessages actually accepts, so we cast to pass consentStates.
-  await agent.start({ consentStates: [0, 1, 2] } as Parameters<
-    typeof agent.start
-  >[0]);
+  await agent.start({
+    consentStates: [0, 1, 2],
+    disableSync: true,
+  } as Parameters<typeof agent.start>[0]);
   console.log(`[reef] Daemon running. Listening for A2A messages...`);
   console.log(
     `[reef] TIP: Run \`reef messages --watch\` in another terminal to monitor incoming messages.`,

@@ -20,9 +20,18 @@ export function configSetCommand(key: string, value: string): void {
       config.country = value.toUpperCase().slice(0, 2);
       break;
     }
+    case "maxTurns": {
+      const num = parseInt(value, 10);
+      if (isNaN(num) || num < 1) {
+        console.error("maxTurns must be a positive integer");
+        process.exit(1);
+      }
+      config.maxTurns = num;
+      break;
+    }
     default:
       console.error(`Unknown config key: ${key}`);
-      console.error(`Valid keys: contactsOnly, country`);
+      console.error(`Valid keys: contactsOnly, country, maxTurns`);
       process.exit(1);
   }
 

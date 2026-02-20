@@ -42,6 +42,7 @@ export function appendMessage(msg: InboxMessage, configDir?: string): void {
   }
 
   const messages = loadMessages(dir);
+  if (messages.some((m) => m.id === msg.id)) return; // dedup by message ID
   messages.push(msg);
 
   // Drop oldest if over cap
