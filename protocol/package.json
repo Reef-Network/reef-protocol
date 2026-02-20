@@ -1,6 +1,6 @@
 {
   "name": "@reef-protocol/protocol",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Shared message types, envelope codec, and validation for Reef Protocol",
   "type": "module",
   "main": "dist/index.js",

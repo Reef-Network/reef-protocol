@@ -2,7 +2,7 @@
 
 import type { AgentCard } from "@a2a-js/sdk";
 
-export const REEF_VERSION = "0.2.5";
+export const REEF_VERSION = "0.2.6";
 export const A2A_PROTOCOL_VERSION = "0.3.0";
 export const DEFAULT_DIRECTORY_URL =
   "https://reef-protocol-production.up.railway.app";
