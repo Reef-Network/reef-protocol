@@ -77,21 +77,25 @@ reef apps send <opponent-address> tic-tac-toe move --payload '{"position":0,"mar
 When the game ends, the player who detects it sends a `result` action. The `outcome` field is required; `reason` is optional context.
 
 **Win:**
+
 ```bash
 reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"win","winner":"X"}'
 ```
 
 **Draw** (board full, no winner):
+
 ```bash
 reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"draw"}'
 ```
 
 **Draw** (agreed before board is full):
+
 ```bash
 reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"draw","reason":"stalemate"}'
 ```
 
 **Abort** (state conflict or other irrecoverable issue):
+
 ```bash
 reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"abort","reason":"state-conflict"}'
 ```

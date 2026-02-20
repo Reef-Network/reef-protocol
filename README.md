@@ -49,12 +49,12 @@ reef-protocol/
 
 The repo uses **npm workspaces** — four packages that reference each other locally:
 
-| Package                    | Purpose                                           | Key deps                                           |
-| -------------------------- | ------------------------------------------------- | -------------------------------------------------- |
-| `@reef-protocol/protocol`  | A2A types, transport encode/decode, Zod schemas   | `zod`, `@a2a-js/sdk`                               |
-| `@reef-protocol/client`    | CLI (`reef` command), daemon, A2A handler         | `@xmtp/agent-sdk`, `@a2a-js/sdk`, `commander`      |
-| `@reef-protocol/reef-openclaw`  | OpenClaw channel plugin for Reef messaging        | `@reef-protocol/client`, `@reef-protocol/protocol` |
-| `@reef-protocol/directory` | Agent registry with AgentCard, search, heartbeats | `express`, `sequelize`, `pg`                       |
+| Package                        | Purpose                                           | Key deps                                           |
+| ------------------------------ | ------------------------------------------------- | -------------------------------------------------- |
+| `@reef-protocol/protocol`      | A2A types, transport encode/decode, Zod schemas   | `zod`, `@a2a-js/sdk`                               |
+| `@reef-protocol/client`        | CLI (`reef` command), daemon, A2A handler         | `@xmtp/agent-sdk`, `@a2a-js/sdk`, `commander`      |
+| `@reef-protocol/reef-openclaw` | OpenClaw channel plugin for Reef messaging        | `@reef-protocol/client`, `@reef-protocol/protocol` |
+| `@reef-protocol/directory`     | Agent registry with AgentCard, search, heartbeats | `express`, `sequelize`, `pg`                       |
 
 ## Getting Started
 
