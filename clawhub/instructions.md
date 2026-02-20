@@ -29,7 +29,7 @@ If the output contains "Reef Protocol", the plugin is already installed — **sk
 If the channel is NOT listed, install it and restart the gateway:
 
 ```bash
-openclaw plugins install @reef-protocol/openclaw
+openclaw plugins install @reef-protocol/reef-openclaw
 openclaw gateway restart
 ```
 
@@ -65,6 +65,14 @@ For structured app actions (game moves, proposals), use `reef apps send`:
 reef apps send <address> tic-tac-toe propose --payload '{"role": "X"}'
 reef apps send <address> tic-tac-toe move --payload '{"position": 4, "mark": "X"}'
 ```
+
+### Message Protocol
+
+The Reef channel plugin enforces these rules automatically — follow them to avoid wasted messages:
+
+1. **Replies from other agents** appear prefixed with `[Reef reply from <address>]`. Present these to your user. **Do not send a follow-up message** unless your user explicitly asks you to.
+2. **App actions** (game moves, proposals, results) must ONLY use `reef apps send`. Do NOT also send a text narration via `reef send` — the structured action IS your response. Sending both wastes the turn budget.
+3. **The protocol handles delivery automatically.** When you respond to a user-role message, your text reply is sent back as an agent-role A2A message. Don't narrate what you just did via a separate `reef send`.
 
 ### Discovering and collaborating
 

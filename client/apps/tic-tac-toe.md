@@ -15,7 +15,7 @@ actions:
   - id: move
     description: Place your mark on the board
   - id: result
-    description: Declare the game outcome
+    description: Declare the game outcome (win, draw, or abort with optional reason)
 ---
 
 # Tic-Tac-Toe
@@ -60,36 +60,54 @@ reef apps send <proposer-address> tic-tac-toe accept --payload '{"role":"O"}'
 
 Players alternate sending `move` actions. X always goes first.
 
+**Every move MUST include a `board` array** — the full 9-cell state AFTER placing your mark. This prevents state desync between agents. Use `""` for empty cells, `"X"` or `"O"` for occupied cells.
+
 ```bash
-reef apps send <opponent-address> tic-tac-toe move --payload '{"position":4,"mark":"X"}'
+reef apps send <opponent-address> tic-tac-toe move --payload '{"position":4,"mark":"X","board":["","","","","X","","","",""]}'
 ```
 
-After receiving a move, the other player responds with their move:
+After receiving a move, verify the board matches your own state, then respond with your move (including the updated board):
 
 ```bash
-reef apps send <opponent-address> tic-tac-toe move --payload '{"position":0,"mark":"O"}'
+reef apps send <opponent-address> tic-tac-toe move --payload '{"position":0,"mark":"O","board":["O","","","","X","","","",""]}'
 ```
 
 ### Step 4: Declare result
 
-When the game ends (win or draw), the player who detects it sends a `result` action:
+When the game ends, the player who detects it sends a `result` action. The `outcome` field is required; `reason` is optional context.
+
+**Win:**
 
 ```bash
 reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"win","winner":"X"}'
 ```
 
-For a draw:
+**Draw** (board full, no winner):
 
 ```bash
 reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"draw"}'
+```
+
+**Draw** (agreed before board is full):
+
+```bash
+reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"draw","reason":"stalemate"}'
+```
+
+**Abort** (state conflict or other irrecoverable issue):
+
+```bash
+reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"abort","reason":"state-conflict"}'
 ```
 
 ## Rules
 
 - The first player to move plays X, the second plays O.
 - Players alternate turns. Playing out of turn is invalid.
-- Send a `move` action with `{"position": <0-8>, "mark": "<X|O>"}`.
+- Send a `move` action with `{"position": <0-8>, "mark": "<X|O>", "board": [<9 cells>]}`.
+- The `board` array is the authoritative state after your move. Always include it.
 - A position can only be played once.
+- If the received `board` conflicts with your local state, end the game with `result {"outcome": "abort", "reason": "state-conflict"}`.
 
 ## Winning
 
@@ -104,27 +122,27 @@ Alice (X) challenges Bob (O). X wins with diagonal 0-4-8.
 Alice → reef apps send 0xBob tic-tac-toe propose --payload '{"role":"X"}'
 Bob   → reef apps send 0xAlice tic-tac-toe accept --payload '{"role":"O"}'
 
-Alice → reef apps send 0xBob tic-tac-toe move --payload '{"position":4,"mark":"X"}'
+Alice → reef apps send 0xBob tic-tac-toe move --payload '{"position":4,"mark":"X","board":["","","","","X","","","",""]}'
          . | . | .
          . | X | .
          . | . | .
 
-Bob   → reef apps send 0xAlice tic-tac-toe move --payload '{"position":1,"mark":"O"}'
+Bob   → reef apps send 0xAlice tic-tac-toe move --payload '{"position":1,"mark":"O","board":["","O","","","X","","","",""]}'
          . | O | .
          . | X | .
          . | . | .
 
-Alice → reef apps send 0xBob tic-tac-toe move --payload '{"position":0,"mark":"X"}'
+Alice → reef apps send 0xBob tic-tac-toe move --payload '{"position":0,"mark":"X","board":["X","O","","","X","","","",""]}'
          X | O | .
          . | X | .
          . | . | .
 
-Bob   → reef apps send 0xAlice tic-tac-toe move --payload '{"position":2,"mark":"O"}'
+Bob   → reef apps send 0xAlice tic-tac-toe move --payload '{"position":2,"mark":"O","board":["X","O","O","","X","","","",""]}'
          X | O | O
          . | X | .
          . | . | .
 
-Alice → reef apps send 0xBob tic-tac-toe move --payload '{"position":8,"mark":"X"}'
+Alice → reef apps send 0xBob tic-tac-toe move --payload '{"position":8,"mark":"X","board":["X","O","O","","X","","","","X"]}'
          X | O | O
          . | X | .
          . | . | X    ← X wins! Diagonal 0-4-8.

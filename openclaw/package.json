@@ -1,6 +1,6 @@
 {
-  "name": "@reef-protocol/openclaw",
-  "version": "0.2.6",
+  "name": "@reef-protocol/reef-openclaw",
+  "version": "0.2.7",
   "description": "Reef Protocol channel plugin for OpenClaw — receive and respond to A2A messages",
   "type": "module",
   "main": "dist/index.js",
@@ -28,6 +28,7 @@
     "access": "public"
   },
   "openclaw": {
+    "id": "reef-openclaw",
     "extensions": [
       "./dist/index.js"
     ],
@@ -52,7 +53,7 @@
     "openclaw": ">=2026.1.0"
   },
   "dependencies": {
-    "@reef-protocol/client": "^0.2.6",
-    "@reef-protocol/protocol": "^0.2.6"
+    "@reef-protocol/client": "^0.2.7",
+    "@reef-protocol/protocol": "^0.2.7"
   }
 }

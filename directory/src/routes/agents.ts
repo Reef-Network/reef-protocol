@@ -47,6 +47,7 @@ function toReputationInput(agent: Agent): ReputationInput {
 agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
   try {
     const body = registerPayloadSchema.parse(req.body);
+    const addr = body.address.toLowerCase();
     const agentCard: AgentCard = body.agentCard;
 
     // Extract flat fields from AgentCard for search/stats compat
@@ -55,7 +56,7 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
     const skillTags = agentCard.skills.flatMap((s) => s.tags);
     const version = agentCard.version || null;
 
-    let agent = await Agent.findByPk(body.address);
+    let agent = await Agent.findByPk(addr);
 
     if (agent) {
       await agent.update({
@@ -70,7 +71,7 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
       });
     } else {
       agent = await Agent.create({
-        address: body.address,
+        address: addr,
         name,
         bio: description,
         skills: skillTags,
@@ -192,7 +193,8 @@ agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
       return;
     }
 
-    const agent = await Agent.findByPk(body.address);
+    const addr = body.address.toLowerCase();
+    const agent = await Agent.findByPk(addr);
     if (!agent) {
       res.status(404).json({ error: "Agent not registered" });
       return;
@@ -244,7 +246,7 @@ agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
 
     // Piggyback: refresh any coordinated apps owned by this agent
     const coordinatedApps = await App.findAll({
-      where: { coordinator_address: body.address },
+      where: { coordinator_address: addr },
     });
 
     for (const coordApp of coordinatedApps) {
@@ -298,7 +300,9 @@ agentsRouter.get(
   readLimiter,
   async (req, res, next) => {
     try {
-      const agent = await Agent.findByPk(req.params.address as string);
+      const agent = await Agent.findByPk(
+        (req.params.address as string).toLowerCase(),
+      );
       if (!agent) {
         res.status(404).json({ error: "Agent not found" });
         return;
@@ -329,7 +333,9 @@ agentsRouter.get(
  */
 agentsRouter.get("/:address", readLimiter, async (req, res, next) => {
   try {
-    const agent = await Agent.findByPk(req.params.address as string);
+    const agent = await Agent.findByPk(
+      (req.params.address as string).toLowerCase(),
+    );
     if (!agent) {
       res.status(404).json({ error: "Agent not found" });
       return;

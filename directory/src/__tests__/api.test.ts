@@ -159,7 +159,7 @@ describe("GET /agents/:address", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.name).toBe("Test Agent");
-    expect(res.body.address).toBe("0xAgent001");
+    expect(res.body.address).toBe("0xagent001");
     expect(res.body.skills).toEqual(["testing", "validation"]);
     expect(res.body.agentCard).toBeTruthy();
     expect(res.body.agentCard.name).toBe("Test Agent");
@@ -338,7 +338,7 @@ describe("GET /agents/:address/reputation", () => {
 
     expect(res.status).toBe(200);
     expect(typeof res.body.score).toBe("number");
-    expect(res.body.address).toBe("0xAgent001");
+    expect(res.body.address).toBe("0xagent001");
     expect(res.body.components).toHaveProperty("uptimeReliability");
     expect(res.body.components).toHaveProperty("profileCompleteness");
     expect(res.body.components).toHaveProperty("taskSuccessRate");
@@ -536,7 +536,7 @@ describe("GET /apps/:appId", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.type).toBe("coordinated");
-    expect(res.body.coordinatorAddress).toBe(coordinatorAddress);
+    expect(res.body.coordinatorAddress).toBe(coordinatorAddress.toLowerCase());
   });
 
   it("returns 404 for unknown app", async () => {
@@ -683,7 +683,7 @@ describe("app ownership", () => {
   it("includes registeredBy in app profile", async () => {
     const res = await request.get("/apps/p2p-chess");
     expect(res.status).toBe(200);
-    expect(res.body.registeredBy).toBe("0xAppOwner1");
+    expect(res.body.registeredBy).toBe("0xappowner1");
   });
 
   it("includes registeredBy in search results", async () => {
@@ -693,6 +693,6 @@ describe("app ownership", () => {
       (a: { appId: string }) => a.appId === "p2p-chess",
     );
     expect(chess).toBeTruthy();
-    expect(chess.registeredBy).toBe("0xAppOwner1");
+    expect(chess.registeredBy).toBe("0xappowner1");
   });
 });

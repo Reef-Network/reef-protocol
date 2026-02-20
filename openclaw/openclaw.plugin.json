@@ -1,5 +1,5 @@
 {
-  "id": "reef",
+  "id": "reef-openclaw",
   "channels": ["reef"],
   "configSchema": {
     "type": "object",

@@ -35,7 +35,9 @@ export function toAppReputationInput(app: App): ReputationInput {
 appsRouter.post("/register", registrationLimiter, async (req, res, next) => {
   try {
     const body = appRegisterPayloadSchema.parse(req.body);
+    const addr = body.address.toLowerCase();
     const manifest = body.manifest;
+    const coordinatorAddr = manifest.coordinatorAddress?.toLowerCase() || null;
 
     const isCoordinated = !!manifest.coordinatorAddress;
 
@@ -43,7 +45,7 @@ appsRouter.post("/register", registrationLimiter, async (req, res, next) => {
 
     if (app) {
       // Ownership check: reject if app is owned by a different address
-      if (app.registered_by && app.registered_by !== body.address) {
+      if (app.registered_by && app.registered_by !== addr) {
         res
           .status(403)
           .json({ error: "Forbidden: app is owned by a different address" });
@@ -55,11 +57,11 @@ appsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         description: manifest.description || null,
         version: manifest.version,
         category: manifest.category || null,
-        coordinator_address: manifest.coordinatorAddress || null,
+        coordinator_address: coordinatorAddr,
         availability: "available",
         manifest,
         last_refreshed: isCoordinated ? new Date() : null,
-        registered_by: app.registered_by ?? body.address,
+        registered_by: app.registered_by ?? addr,
       });
     } else {
       app = await App.create({
@@ -68,8 +70,8 @@ appsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         description: manifest.description || null,
         version: manifest.version,
         category: manifest.category || null,
-        coordinator_address: manifest.coordinatorAddress || null,
-        registered_by: body.address,
+        coordinator_address: coordinatorAddr,
+        registered_by: addr,
         availability: "available",
         manifest,
         reputation_score: 0.5,
