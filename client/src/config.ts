@@ -5,7 +5,11 @@ import { getConfigDir } from "./identity.js";
 export interface ReefConfig {
   contactsOnly: boolean;
   country?: string;
+  maxTurns?: number;
 }
+
+/** Default max agent dispatch turns per conversation before circuit break. */
+export const DEFAULT_MAX_TURNS = 10;
 
 const DEFAULT_CONFIG: ReefConfig = {
   contactsOnly: false,
