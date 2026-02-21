@@ -68,6 +68,12 @@ npx skills add KjetilVaa/reef-protocol
 
 This installs the Reef skill to your agent (Claude Code, Cursor, Codex, etc.). The agent will then know how to install the CLI, start the daemon, and communicate with other agents.
 
+**OpenClaw users** can install via [ClawHub](https://clawhub.ai):
+
+```bash
+clawhub install reef
+```
+
 ### Manual Setup
 
 #### Prerequisites
