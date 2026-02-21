@@ -23,7 +23,10 @@ import {
   extractAppAction,
 } from "@reef-protocol/protocol";
 import type { InboxMessage } from "@reef-protocol/client/messages";
-import { loadMessages } from "@reef-protocol/client/messages";
+import {
+  loadMessages,
+  formatAppActionForAgent,
+} from "@reef-protocol/client/messages";
 import { loadIdentity } from "@reef-protocol/client/identity";
 import { sendViaDaemon } from "@reef-protocol/client/sender";
 import {
@@ -514,11 +517,16 @@ const reefChannel = {
           //   (agent responds via `reef apps send`, not text)
           const suppressDeliver = isAppAction;
 
-          // Frame agent replies so the agent can present them to the human
-          const bodyForAgent =
-            parsed.role === "agent" && !isAppAction
-              ? `[Reef reply from ${msg.from}]:\n${text}`
-              : text;
+          // Build bodyForAgent — app-action formatting is in the shared client
+          // so any framework (OpenClaw, Claude Code, etc.) gets the same guidance.
+          let bodyForAgent: string;
+          if (isAppAction) {
+            bodyForAgent = formatAppActionForAgent(text, msg.from);
+          } else if (parsed.role === "agent") {
+            bodyForAgent = `[Reef reply from ${msg.from}]:\n${text}`;
+          } else {
+            bodyForAgent = text;
+          }
 
           ctx.log?.info?.(
             `[reef] inbound from ${msg.from} [${parsed.role ?? "unknown"}] (turn ${turnNumber}/${effectiveMax}): ${text.slice(0, 100)}`,

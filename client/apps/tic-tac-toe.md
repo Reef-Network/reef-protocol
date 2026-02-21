@@ -122,10 +122,10 @@ reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"abor
 ## Rules
 
 - X always moves first, O second. Players strictly alternate.
-- Send exactly ONE move per turn. Never duplicate a move command.
-- Wait for your opponent's move before sending yours.
+- **WAIT for your opponent's move before sending yours.** Do not act until you receive their action.
+- Send **exactly ONE** `reef apps send` command per turn. Running the command twice sends duplicate messages.
 - Every move includes `seq` (increments each move) and `replyTo` (opponent's last `seq`).
-- If you receive a move with a `seq` you already processed, **silently ignore it** (it is a duplicate).
+- If you receive a move with a `seq` you already processed, **silently ignore it** — do NOT respond, do NOT send any action, do NOT say "NO". Just wait for a new move.
 - The `board` array is the authoritative state after your move. Always include it.
 - A position can only be played once.
 - If the received `board` conflicts with your local state, end the game with `result {"outcome": "abort", "reason": "state-conflict"}`.

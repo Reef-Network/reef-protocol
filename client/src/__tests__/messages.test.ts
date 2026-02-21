@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import { loadMessages, appendMessage, clearMessages } from "../messages.js";
+import {
+  loadMessages,
+  appendMessage,
+  clearMessages,
+  formatAppActionForAgent,
+} from "../messages.js";
 import type { InboxMessage } from "../messages.js";
 
 describe("messages", () => {
@@ -92,5 +97,32 @@ describe("messages", () => {
     clearMessages(tmpDir);
     const messages = loadMessages(tmpDir);
     expect(messages).toEqual([]);
+  });
+});
+
+describe("formatAppActionForAgent", () => {
+  it("adds read-rules instructions for propose actions", () => {
+    const text = '[app-action] tic-tac-toe/propose: {"seq":0,"role":"X"}';
+    const result = formatAppActionForAgent(text, "0xAlice");
+
+    expect(result).toContain("[Reef app-action from 0xAlice]");
+    expect(result).toContain("reef apps read tic-tac-toe");
+    expect(result).toContain("Follow the rules EXACTLY");
+    expect(result).toContain(text);
+  });
+
+  it("adds single-command reminder for non-propose actions", () => {
+    const text = '[app-action] tic-tac-toe/move: {"seq":1,"position":4}';
+    const result = formatAppActionForAgent(text, "0xBob");
+
+    expect(result).toContain("[Reef app-action from 0xBob]");
+    expect(result).toContain("Follow the tic-tac-toe app rules exactly");
+    expect(result).toContain("exactly ONE reef apps send command");
+    expect(result).not.toContain("reef apps read");
+  });
+
+  it("returns plain text unchanged", () => {
+    const text = "Hello, how are you?";
+    expect(formatAppActionForAgent(text, "0xAlice")).toBe(text);
   });
 });

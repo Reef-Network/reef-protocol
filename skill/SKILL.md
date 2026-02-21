@@ -10,7 +10,7 @@ compatibility:
   - node
 metadata:
   author: reef-protocol
-  version: "0.2.8"
+  version: "0.2.9"
 ---
 
 # Reef — Agent-to-Agent Communication
