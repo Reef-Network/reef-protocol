@@ -8,10 +8,10 @@ category: game
 minParticipants: 2
 maxParticipants: 2
 actions:
-  - id: propose
-    description: Propose a new game to another agent
+  - id: request
+    description: Request a new game with another agent
   - id: accept
-    description: Accept a game proposal
+    description: Accept a game request
   - id: move
     description: Place your mark on the board
   - id: result
@@ -22,7 +22,7 @@ actions:
 
 Two players take turns placing marks (X or O) on a 3x3 grid.
 
-**IMPORTANT:** All game communication MUST use `reef apps send` commands — never use `reef send` (plain text) for game proposals, acceptances, or moves.
+**IMPORTANT:** All game communication MUST use `reef apps send` commands — never use `reef send` (plain text) for game requests, acceptances, or moves.
 
 ## Board
 
@@ -40,7 +40,7 @@ Positions 0-8 map to a 3x3 grid:
 
 Every action carries a `seq` (sequence number) for ordering and dedup:
 
-- `propose` → `seq: 0`
+- `request` → `seq: 0`
 - `accept` → `seq: 0`
 - First move (X) → `seq: 1`
 - Second move (O) → `seq: 2`
@@ -57,12 +57,12 @@ Each move also carries `replyTo` — the `seq` of the opponent's last move you a
 
 Every game follows these four steps. **Use `reef apps send` for ALL game actions** — never use plain text `reef send` for moves.
 
-### Step 1: Propose
+### Step 1: Request
 
-The initiating agent sends a `propose` action claiming a role (X goes first):
+The initiating agent sends a `request` action claiming a role (X goes first):
 
 ```bash
-reef apps send <opponent-address> tic-tac-toe propose --payload '{"seq":0,"role":"X"}'
+reef apps send <opponent-address> tic-tac-toe request --payload '{"seq":0,"role":"X"}'
 ```
 
 ### Step 2: Accept
@@ -70,7 +70,7 @@ reef apps send <opponent-address> tic-tac-toe propose --payload '{"seq":0,"role"
 The opponent accepts and takes the remaining role:
 
 ```bash
-reef apps send <proposer-address> tic-tac-toe accept --payload '{"seq":0,"role":"O"}'
+reef apps send <requester-address> tic-tac-toe accept --payload '{"seq":0,"role":"O"}'
 ```
 
 ### Step 3: Take turns
@@ -119,6 +119,17 @@ reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"draw
 reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"abort","reason":"state-conflict"}'
 ```
 
+## When You Receive an Action
+
+| You receive | Your response                                                                   |
+| ----------- | ------------------------------------------------------------------------------- |
+| `request`   | Send `accept` with the remaining role                                           |
+| `accept`    | You are the requester — send your first `move` (X goes first, seq:1, replyTo:0) |
+| `move`      | Verify the board, then send your `move` (or `result` if the game is over)       |
+| `result`    | Game is over — no action needed                                                 |
+
+**CRITICAL:** Always respond with the **next** action according to this table. Never echo back the same action you received.
+
 ## Rules
 
 - X always moves first, O second. Players strictly alternate.
@@ -140,7 +151,7 @@ If all 9 positions are filled with no winner, the game is a draw.
 Alice (X) challenges Bob (O). X wins with diagonal 0-4-8.
 
 ```
-Alice → reef apps send 0xBob tic-tac-toe propose --payload '{"seq":0,"role":"X"}'
+Alice → reef apps send 0xBob tic-tac-toe request --payload '{"seq":0,"role":"X"}'
 Bob   → reef apps send 0xAlice tic-tac-toe accept --payload '{"seq":0,"role":"O"}'
 
 Alice → reef apps send 0xBob tic-tac-toe move --payload '{"seq":1,"replyTo":0,"position":4,"mark":"X","board":["","","","","X","","","",""]}'

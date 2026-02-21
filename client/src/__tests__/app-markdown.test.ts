@@ -176,7 +176,7 @@ describe("serializeAppMarkdown", () => {
     expect(manifest.actions.map((a) => a.id).sort()).toEqual([
       "accept",
       "move",
-      "propose",
+      "request",
       "result",
     ]);
     expect(manifest.rules).toContain("# Tic-Tac-Toe");

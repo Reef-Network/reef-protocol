@@ -296,7 +296,8 @@ const reefChannel = {
     targetResolver: {
       hint: "Use an Ethereum address like 0x1234...abcd",
       looksLikeId(raw: string): boolean {
-        return /^0x[0-9a-fA-F]{40}$/i.test(raw.trim());
+        const addr = raw.trim().replace(/^reef:/i, "");
+        return /^0x[0-9a-fA-F]{40}$/i.test(addr);
       },
     },
   },
@@ -633,12 +634,26 @@ const reefChannel = {
                 cfg,
                 dispatcherOptions: {
                   deliver: async (payload: { text?: string }) => {
+                    const responseText = payload.text;
+
                     // Protocol-level suppression: agent replies and app-actions
                     // are dispatched (agent sees them) but deliver is suppressed
                     // to prevent ping-pong loops and dual delivery.
-                    if (suppressDeliver) return;
+                    // For app-actions, capture the agent's response as a system
+                    // event on the main session so the agent retains memory of
+                    // what it did (e.g. "what just happened?").
+                    if (suppressDeliver) {
+                      if (responseText && isAppAction) {
+                        const mainKey =
+                          route.mainSessionKey ?? route.sessionKey;
+                        runtime.system.enqueueSystemEvent(
+                          `[reef:app] agent responded to ${msg.from}:\n${responseText.slice(0, 500)}`,
+                          { sessionKey: mainKey },
+                        );
+                      }
+                      return;
+                    }
 
-                    const responseText = payload.text;
                     if (!responseText) return;
 
                     // Encode as A2A message/send and relay via daemon.
@@ -694,6 +709,11 @@ const reefChannel = {
 
             // Notify main session about app-action activity
             if (isAppAction) {
+              const mainKey = route.mainSessionKey ?? route.sessionKey;
+              runtime.system.enqueueSystemEvent(
+                `[reef:app] received from ${msg.from}: ${text.replace("[app-action] ", "").slice(0, 200)}`,
+                { sessionKey: mainKey },
+              );
               notifier.push({
                 type: "app-action",
                 peer: msg.from,
@@ -763,22 +783,22 @@ const reefChannel = {
   outbound: {
     deliveryMode: "direct" as const,
 
-    async sendText({
-      to,
-      text,
-      account,
-    }: {
-      to: string;
-      text: string;
-      account: ReefAccountConfig;
-    }): Promise<{ ok: boolean }> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async sendText(ctx: any): Promise<any> {
+      const { text, accountId } = ctx;
+      const to = (ctx.to as string).replace(/^reef:/i, "");
+      const runtime = getRuntime();
+      const cfg = runtime.config.loadConfig();
+      const account =
+        cfg?.channels?.reef?.accounts?.[accountId ?? "default"] ?? {};
       const configDir =
         account?.configDir ?? path.join(process.env.HOME || "~", ".reef");
 
       // Pre-encode as A2A message/send with a unique contextId
       // so turn tracking can separate independent conversations.
+      const msgId = randomUUID();
       const msg = createMessage("user", [textPart(text)], {
-        contextId: randomUUID(),
+        contextId: msgId,
       });
       const request = createSendMessageRequest(msg);
       const encoded = encodeA2AMessage(
@@ -787,13 +807,18 @@ const reefChannel = {
 
       const sent = await sendViaDaemon(to, encoded, configDir);
       if (!sent) {
-        console.error(
-          "[reef] Daemon is not running. Start it with: reef start --name <name>",
+        throw new Error(
+          "Daemon is not running. Start it with: reef start --name <name>",
         );
-        return { ok: false };
       }
       console.log(`[reef] outbound to ${to}: ${text.slice(0, 100)}`);
-      return { ok: true };
+      return { channel: "reef", messageId: msgId, chatId: to };
+    },
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async sendMedia(ctx: any): Promise<any> {
+      // Reef doesn't support media — send text fallback
+      return reefChannel.outbound.sendText(ctx);
     },
   },
 };
