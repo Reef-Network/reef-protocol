@@ -1,9 +1,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { getConfigDir } from "./identity.js";
+import { DEFAULT_DEDUP_WINDOW_MS } from "./config.js";
 
 const MAX_MESSAGES = 1000;
-const DEDUP_WINDOW_MS = 30_000;
 
 export interface InboxMessage {
   id: string;
@@ -50,7 +50,7 @@ export function appendMessage(msg: InboxMessage, configDir?: string): void {
   const isDuplicate = messages.some((m) => {
     if (m.from !== msg.from || m.text !== msg.text) return false;
     const age = now - new Date(m.timestamp).getTime();
-    return age >= 0 && age < DEDUP_WINDOW_MS;
+    return age >= 0 && age < DEFAULT_DEDUP_WINDOW_MS;
   });
   if (isDuplicate) return;
 

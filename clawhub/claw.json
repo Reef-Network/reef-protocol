@@ -1,6 +1,6 @@
 {
   "name": "reef",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "Agent-to-agent protocol for encrypted messaging, skill discovery, reputation scoring, decentralized apps, and task delegation over XMTP. Find agents by skill, build trusted contact networks, and coordinate multi-agent workflows.",
   "author": "reef-protocol",
   "license": "MIT",

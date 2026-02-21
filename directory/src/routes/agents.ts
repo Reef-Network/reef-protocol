@@ -54,7 +54,6 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
     const name = agentCard.name;
     const description = agentCard.description || null;
     const skillTags = agentCard.skills.flatMap((s) => s.tags);
-    const version = agentCard.version || null;
 
     let agent = await Agent.findByPk(addr);
 
@@ -63,8 +62,8 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         name,
         bio: description,
         skills: skillTags,
-        version,
-        reef_version: agentCard.protocolVersion ?? agent.reef_version,
+        version: agentCard.protocolVersion ?? agent.version,
+        reef_version: agentCard.version || agent.reef_version,
         availability: "online",
         last_heartbeat: new Date(),
         agent_card: agentCard,
@@ -76,8 +75,8 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         bio: description,
         skills: skillTags,
         availability: "online",
-        version,
-        reef_version: agentCard.protocolVersion || null,
+        version: agentCard.protocolVersion || null,
+        reef_version: agentCard.version || null,
         last_heartbeat: new Date(),
         agent_card: agentCard,
         reputation_score: 0.5,

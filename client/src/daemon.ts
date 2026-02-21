@@ -22,7 +22,7 @@ import { appendMessage } from "./messages.js";
 import { AppRouter } from "./app-router.js";
 import { installWellKnownApps } from "./app-store.js";
 import { startHeartbeat } from "./heartbeat.js";
-import { loadConfig } from "./config.js";
+import { loadConfig, DEFAULT_DEDUP_WINDOW_MS } from "./config.js";
 import { isContact } from "./contacts.js";
 
 import type { MessageContext } from "@xmtp/agent-sdk";
@@ -228,6 +228,31 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
   );
 
   // Start local HTTP API so `reef send` can delegate to the daemon
+
+  // Outbound dedup — suppress identical sends within time window.
+  // Catches LLMs that run the same `reef apps send` command multiple times per turn.
+  const recentSends = new Map<string, number>();
+
+  function isDuplicateSend(address: string, text: string): boolean {
+    const key = `${address.toLowerCase()}:${text}`;
+    const lastSent = recentSends.get(key);
+    const now = Date.now();
+    if (lastSent && now - lastSent < DEFAULT_DEDUP_WINDOW_MS) {
+      return true;
+    }
+    recentSends.set(key, now);
+    return false;
+  }
+
+  // Prune stale dedup entries every 5 minutes
+  const dedupCleanup = setInterval(() => {
+    const cutoff = Date.now() - DEFAULT_DEDUP_WINDOW_MS;
+    for (const [key, ts] of recentSends) {
+      if (ts < cutoff) recentSends.delete(key);
+    }
+  }, 5 * 60_000);
+  dedupCleanup.unref();
+
   const lockPath = path.join(configDir, "daemon.lock");
   const httpServer = http.createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/send") {
@@ -244,6 +269,15 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
           if (!address || !text) {
             res.writeHead(400, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ error: "address and text required" }));
+            return;
+          }
+          // Suppress duplicate sends (same recipient + payload within window)
+          if (isDuplicateSend(address, text)) {
+            console.log(
+              `[reef] outbound dedup: suppressed duplicate to ${address}`,
+            );
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ ok: true, deduped: true }));
             return;
           }
           // Relay pre-encoded A2A payload directly (callers encode before sending)
