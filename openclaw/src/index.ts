@@ -289,6 +289,15 @@ const reefChannel = {
     chatTypes: ["direct"],
   },
 
+  messaging: {
+    targetResolver: {
+      hint: "Use an Ethereum address like 0x1234...abcd",
+      looksLikeId(raw: string): boolean {
+        return /^0x[0-9a-fA-F]{40}$/i.test(raw.trim());
+      },
+    },
+  },
+
   config: {
     listAccountIds(cfg: ReefPluginConfig): string[] {
       const accounts = cfg?.channels?.reef?.accounts;
@@ -503,7 +512,7 @@ const reefChannel = {
           //   (protocol-level enforcement prevents ping-pong)
           // - app-action (any role) → dispatch but NO deliver
           //   (agent responds via `reef apps send`, not text)
-          const suppressDeliver = parsed.role === "agent" || isAppAction;
+          const suppressDeliver = isAppAction;
 
           // Frame agent replies so the agent can present them to the human
           const bodyForAgent =
@@ -538,6 +547,27 @@ const reefChannel = {
               ? new Date(msg.timestamp).getTime()
               : Date.now();
 
+            // Agent text replies are notification-only — enqueue as system event
+            // on the main session so the human sees them, but do NOT dispatch
+            // (dispatching triggers a full agent run that can loop via reef send).
+            const isAgentReply = parsed.role === "agent" && !isAppAction;
+            if (isAgentReply) {
+              const mainKey = route.mainSessionKey ?? route.sessionKey;
+              runtime.system.enqueueSystemEvent(
+                `[Reef reply from ${msg.from}]:\n${text}`,
+                { sessionKey: mainKey },
+              );
+              notifier.push({
+                type: "reply",
+                peer: msg.from,
+                summary: `replied: "${text.slice(0, 80)}${text.length > 80 ? "\u2026" : ""}"`,
+                timestamp: Date.now(),
+              });
+              continue;
+            }
+
+            const sessionKey = route.sessionKey;
+
             const ctxPayload = runtime.channel.reply.finalizeInboundContext({
               Body: bodyForAgent,
               BodyForAgent: bodyForAgent,
@@ -545,7 +575,7 @@ const reefChannel = {
               CommandBody: bodyForAgent,
               From: `reef:${msg.from}`,
               To: `reef:${msg.from}`,
-              SessionKey: route.sessionKey,
+              SessionKey: sessionKey,
               AccountId: accountId,
               ChatType: "direct",
               ConversationLabel: msg.from,
@@ -564,7 +594,7 @@ const reefChannel = {
             // 3. Record inbound session for routing persistence
             await runtime.channel.session.recordInboundSession({
               storePath,
-              sessionKey: route.sessionKey,
+              sessionKey,
               ctx: ctxPayload,
               updateLastRoute: {
                 sessionKey: route.mainSessionKey ?? route.sessionKey,
@@ -623,6 +653,10 @@ const reefChannel = {
                       ctx.log?.error?.(
                         "[reef] Failed to send reply — daemon not running",
                       );
+                    } else {
+                      ctx.log?.info?.(
+                        `[reef] outbound to ${msg.from}: ${responseText.slice(0, 100)}`,
+                      );
                     }
 
                     runtime.channel.activity.record({
@@ -650,18 +684,12 @@ const reefChannel = {
               },
             );
 
-            // Notify main session about suppressed A2A activity
-            if (suppressDeliver) {
-              const eventType: ReefEvent["type"] = isAppAction
-                ? "app-action"
-                : "reply";
-              const summary = isAppAction
-                ? text.replace("[app-action] ", "")
-                : `replied: "${text.slice(0, 80)}${text.length > 80 ? "\u2026" : ""}"`;
+            // Notify main session about app-action activity
+            if (isAppAction) {
               notifier.push({
-                type: eventType,
+                type: "app-action",
                 peer: msg.from,
-                summary,
+                summary: text.replace("[app-action] ", ""),
                 timestamp: Date.now(),
               });
             }
@@ -756,6 +784,7 @@ const reefChannel = {
         );
         return { ok: false };
       }
+      console.log(`[reef] outbound to ${to}: ${text.slice(0, 100)}`);
       return { ok: true };
     },
   },

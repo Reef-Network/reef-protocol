@@ -1,6 +1,6 @@
 {
   "name": "@reef-protocol/client",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Reef Protocol client — daemon, CLI, and identity management",
   "type": "module",
   "main": "dist/daemon.js",

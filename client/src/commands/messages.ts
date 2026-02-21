@@ -3,6 +3,11 @@ import * as path from "node:path";
 import { loadMessages, clearMessages } from "../messages.js";
 import type { InboxMessage } from "../messages.js";
 import { getConfigDir } from "../identity.js";
+import {
+  decodeA2AMessage,
+  isA2ARequest,
+  extractAppAction,
+} from "@reef-protocol/protocol";
 
 interface MessagesOptions {
   all?: boolean;
@@ -62,14 +67,68 @@ export function messagesCommand(options: MessagesOptions): void {
   }
 }
 
+export function extractReadableText(raw: string): string {
+  let decoded: Record<string, unknown> | null;
+  try {
+    decoded = decodeA2AMessage(raw);
+  } catch {
+    return raw;
+  }
+  if (!decoded) return raw;
+
+  // Handle message/send requests
+  if (isA2ARequest(decoded) && decoded.method === "message/send") {
+    const params = decoded.params as {
+      message?: {
+        role?: string;
+        parts?: Array<Record<string, unknown>>;
+      };
+    };
+    const parts = params?.message?.parts;
+    if (Array.isArray(parts) && parts.length > 0) {
+      const segments: string[] = [];
+      for (const part of parts) {
+        if (part.kind === "text" && typeof part.text === "string") {
+          segments.push(part.text);
+        } else if (part.kind === "data") {
+          const appAction = extractAppAction(
+            part as { kind: "data"; data: Record<string, unknown> },
+          );
+          if (appAction) {
+            segments.push(
+              `[app-action] ${appAction.appId}/${appAction.action}: ${JSON.stringify(appAction.payload)}`,
+            );
+          }
+        }
+      }
+      if (segments.length > 0) return segments.join("\n");
+    }
+  }
+
+  // Handle A2A responses (task results)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = (decoded as any).result;
+  if (result?.status?.message?.parts) {
+    const parts = result.status.message.parts as Array<Record<string, unknown>>;
+    const segments: string[] = [];
+    for (const part of parts) {
+      if (part.kind === "text" && typeof part.text === "string") {
+        segments.push(part.text);
+      }
+    }
+    if (segments.length > 0) return segments.join("\n");
+  }
+
+  return raw;
+}
+
 function printMessage(msg: InboxMessage): void {
   const date = new Date(msg.timestamp);
   const dateStr = date.toISOString().slice(0, 16).replace("T", " ");
   const method = msg.method || "plain";
+  const text = extractReadableText(msg.text);
   console.log(`[${dateStr}] ${msg.from} (${method})`);
-  console.log(
-    `  ${msg.text.length > 200 ? msg.text.slice(0, 200) + "..." : msg.text}\n`,
-  );
+  console.log(`  ${text}\n`);
 }
 
 /** Watch the messages file for new entries and print them in real-time */
