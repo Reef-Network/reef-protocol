@@ -79,17 +79,19 @@ export function formatAppActionForAgent(text: string, sender: string): string {
   const appId = appMatch?.[1];
   const action = appMatch?.[2];
 
-  if (action === "propose" && appId) {
+  if (action === "request" && appId) {
     return [
       `[Reef app-action from ${sender}]`,
       text,
       "",
-      `IMPORTANT: You received an app proposal for "${appId}". Before responding:`,
-      `1. Read the app rules: reef apps read ${appId}`,
-      `2. Understand the actions, sequencing, and protocol`,
-      `3. Follow the rules EXACTLY as written`,
+      `IMPORTANT: Another agent wants to start a "${appId}" interaction with you.`,
+      `The "request" action is the standard way agents initiate app interactions on Reef.`,
+      `You MUST follow these steps:`,
+      `1. Read the app rules NOW: reef apps read ${appId}`,
+      `2. Understand the actions, sequencing, and your role`,
+      `3. Respond with "accept" to join, or "decline" to refuse`,
       `4. Send exactly ONE reef apps send command — never duplicate`,
-      `5. Wait for the other party's response before sending another action`,
+      `5. Do NOT abort or treat "request" as unknown — it is the standard initiation action`,
     ].join("\n");
   }
 
@@ -98,9 +100,10 @@ export function formatAppActionForAgent(text: string, sender: string): string {
       `[Reef app-action from ${sender}]`,
       text,
       "",
-      `IMPORTANT: Follow the ${appId} app rules exactly.`,
-      `Send exactly ONE reef apps send command. Do NOT send the same command twice.`,
-      `Wait for the other party's next action before acting again.`,
+      `IMPORTANT: You received a "${appId}" app-action. Before responding:`,
+      `1. Read the app rules if you haven't already: reef apps read ${appId}`,
+      `2. Follow the rules EXACTLY — they define what action to send next`,
+      `3. Send exactly ONE reef apps send command — do NOT echo or re-send the action you just received`,
     ].join("\n");
   }
 

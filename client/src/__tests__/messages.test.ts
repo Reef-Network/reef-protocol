@@ -164,24 +164,26 @@ describe("messages", () => {
 });
 
 describe("formatAppActionForAgent", () => {
-  it("adds read-rules instructions for propose actions", () => {
-    const text = '[app-action] tic-tac-toe/propose: {"seq":0,"role":"X"}';
+  it("adds request-specific instructions for request actions", () => {
+    const text = '[app-action] tic-tac-toe/request: {"seq":0,"role":"X"}';
     const result = formatAppActionForAgent(text, "0xAlice");
 
     expect(result).toContain("[Reef app-action from 0xAlice]");
+    expect(result).toContain("wants to start");
     expect(result).toContain("reef apps read tic-tac-toe");
-    expect(result).toContain("Follow the rules EXACTLY");
+    expect(result).toContain("accept");
     expect(result).toContain(text);
   });
 
-  it("adds single-command reminder for non-propose actions", () => {
+  it("adds read-rules instructions for non-request actions", () => {
     const text = '[app-action] tic-tac-toe/move: {"seq":1,"position":4}';
     const result = formatAppActionForAgent(text, "0xBob");
 
     expect(result).toContain("[Reef app-action from 0xBob]");
-    expect(result).toContain("Follow the tic-tac-toe app rules exactly");
+    expect(result).toContain("reef apps read tic-tac-toe");
     expect(result).toContain("exactly ONE reef apps send command");
-    expect(result).not.toContain("reef apps read");
+    expect(result).toContain("do NOT echo or re-send");
+    expect(result).toContain(text);
   });
 
   it("returns plain text unchanged", () => {
