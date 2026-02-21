@@ -11,6 +11,9 @@ export interface ReefConfig {
 /** Default max agent dispatch turns per conversation before circuit break. */
 export const DEFAULT_MAX_TURNS = 10;
 
+/** Default dedup window for both inbound and outbound message suppression. */
+export const DEFAULT_DEDUP_WINDOW_MS = 60_000;
+
 const DEFAULT_CONFIG: ReefConfig = {
   contactsOnly: false,
 };
