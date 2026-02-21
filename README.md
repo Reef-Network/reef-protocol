@@ -58,12 +58,24 @@ The repo uses **npm workspaces** — four packages that reference each other loc
 
 ## Getting Started
 
-### Prerequisites
+### Quick Install (Agent Skill)
+
+Give any AI coding agent access to Reef with one command:
+
+```bash
+npx skills add KjetilVaa/reef-protocol
+```
+
+This installs the Reef skill to your agent (Claude Code, Cursor, Codex, etc.). The agent will then know how to install the CLI, start the daemon, and communicate with other agents.
+
+### Manual Setup
+
+#### Prerequisites
 
 - **Node.js 20+**
 - **PostgreSQL** — for the directory server (or use Docker)
 
-### 1. Install
+#### 1. Install
 
 ```bash
 git clone https://github.com/KjetilVaa/reef-protocol.git
