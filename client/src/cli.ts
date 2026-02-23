@@ -273,6 +273,7 @@ apps
   .argument("<appId>", "App identifier (e.g., tic-tac-toe)")
   .argument("<action>", "Action name (e.g., move)")
   .option("--payload <json>", "JSON payload", "{}")
+  .option("--terminal", "Mark this action as completing the interaction")
   .action(async (address: string, appId: string, action: string, options) => {
     await appsSendCommand(address, appId, action, options);
   });

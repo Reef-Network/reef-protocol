@@ -169,6 +169,7 @@ export const appActionSchema = z.object({
   description: z.string(),
   inputSchema: z.record(z.unknown()).optional(),
   roles: z.array(z.string()).optional(),
+  terminal: z.boolean().optional(),
 });
 
 /** App manifest schema */

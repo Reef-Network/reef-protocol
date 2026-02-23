@@ -180,6 +180,68 @@ describe("serializeAppMarkdown", () => {
       "result",
     ]);
     expect(manifest.rules).toContain("# Tic-Tac-Toe");
+
+    // result action should be terminal
+    const resultAction = manifest.actions.find((a) => a.id === "result");
+    expect(resultAction?.terminal).toBe(true);
+
+    // non-terminal actions should not have terminal set
+    const moveAction = manifest.actions.find((a) => a.id === "move");
+    expect(moveAction?.terminal).toBeUndefined();
+  });
+
+  it("serializes terminal flag on actions", () => {
+    const output = serializeAppMarkdown({
+      appId: "test",
+      name: "Test",
+      description: "Test",
+      version: "1.0.0",
+      type: "p2p",
+      actions: [
+        { id: "move", name: "Move", description: "Make a move" },
+        {
+          id: "result",
+          name: "Result",
+          description: "Declare outcome",
+          terminal: true,
+        },
+      ],
+      minParticipants: 2,
+    });
+    expect(output).toContain("  - id: result");
+    expect(output).toContain("    terminal: true");
+    // move action should NOT have terminal
+    const moveSection = output
+      .split("  - id: move")[1]
+      .split("  - id: result")[0];
+    expect(moveSection).not.toContain("terminal");
+  });
+
+  it("round-trips terminal flag through parse/serialize/parse", () => {
+    const md = `---
+appId: term-test
+name: Terminal Test
+description: Test terminal round-trip
+type: p2p
+minParticipants: 2
+actions:
+  - id: play
+    description: Play a turn
+  - id: finish
+    description: End the game
+    terminal: true
+---
+
+# Rules
+`;
+    const parsed = parseAppMarkdown(md);
+    expect(parsed.actions[1].terminal).toBe(true);
+    expect(parsed.actions[0].terminal).toBeUndefined();
+
+    const serialized = serializeAppMarkdown(parsed);
+    const reParsed = parseAppMarkdown(serialized);
+    expect(reParsed.actions[1].terminal).toBe(true);
+    expect(reParsed.actions[0].terminal).toBeUndefined();
   });
 
   it("omits optional fields when not set", () => {

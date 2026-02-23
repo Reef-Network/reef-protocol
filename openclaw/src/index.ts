@@ -647,7 +647,7 @@ const reefChannel = {
                         const mainKey =
                           route.mainSessionKey ?? route.sessionKey;
                         runtime.system.enqueueSystemEvent(
-                          `[reef:app] agent responded to ${msg.from}:\n${responseText.slice(0, 500)}`,
+                          `[reef:app] agent responded to ${msg.from}:\n${responseText}`,
                           { sessionKey: mainKey },
                         );
                       }
@@ -711,7 +711,7 @@ const reefChannel = {
             if (isAppAction) {
               const mainKey = route.mainSessionKey ?? route.sessionKey;
               runtime.system.enqueueSystemEvent(
-                `[reef:app] received from ${msg.from}: ${text.replace("[app-action] ", "").slice(0, 200)}`,
+                `[reef:app] received from ${msg.from}: ${text.replace("[app-action] ", "")}`,
                 { sessionKey: mainKey },
               );
               notifier.push({

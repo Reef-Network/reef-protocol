@@ -95,6 +95,9 @@ export function serializeAppMarkdown(manifest: AppManifest): string {
     for (const action of manifest.actions) {
       lines.push(`  - id: ${action.id}`);
       lines.push(`    description: ${action.description}`);
+      if (action.terminal) {
+        lines.push(`    terminal: true`);
+      }
     }
   }
 
@@ -227,9 +230,15 @@ function getNumber(fields: FrontmatterMap, key: string): number | undefined {
 function parseActions(raw: string | FrontmatterMap[] | undefined): AppAction[] {
   if (!Array.isArray(raw)) return [];
 
-  return raw.map((item) => ({
-    id: (item.id as string) || "",
-    name: (item.name as string) || (item.id as string) || "",
-    description: (item.description as string) || "",
-  }));
+  return raw.map((item) => {
+    const action: AppAction = {
+      id: (item.id as string) || "",
+      name: (item.name as string) || (item.id as string) || "",
+      description: (item.description as string) || "",
+    };
+    if ((item.terminal as string) === "true") {
+      action.terminal = true;
+    }
+    return action;
+  });
 }

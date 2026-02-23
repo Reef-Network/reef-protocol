@@ -19,6 +19,6 @@ Read `AGENTS.md` first — it covers architecture, commands, conventions, and fi
 - Apps are markdown files at `~/.reef/apps/<appId>.md` — YAML frontmatter for metadata, markdown body for rules. Parsed by `app-markdown.ts`, managed by `app-store.ts`.
 - `AppManifest.type` is a required enum: `"p2p" | "coordinated"`. `buildAppManifest()` defaults to `"p2p"`. Validated by Zod (`z.enum(["p2p", "coordinated"])`).
 - Well-known apps (e.g., tic-tac-toe) are auto-installed to `~/.reef/apps/` on first daemon start. `reef apps read <appId>` prints rules for agents to reason about.
-- Every app interaction follows the `request` → `accept` handshake convention. `formatAppActionForAgent()` in `client/src/messages.ts` provides request-specific agent guidance. App markdowns SHOULD declare `request` and `accept` as their first two actions.
+- Every app interaction follows the `request` → `accept` → ... → `terminal` lifecycle. Actions marked `terminal: true` in the manifest signal interaction completion. Agents send terminal actions with `--terminal` flag. `formatAppActionForAgent()` in `client/src/messages.ts` provides action-specific agent guidance. App markdowns SHOULD declare `request` and `accept` as their first two actions, and mark their completion action with `terminal: true`.
 - `reef apps validate <appId|file>` validates app markdown against the Zod schema.
 - Branch protection requires CI pass + 1 reviewer. Always work on feature branches.

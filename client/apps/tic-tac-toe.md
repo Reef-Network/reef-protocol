@@ -16,6 +16,7 @@ actions:
     description: Place your mark on the board
   - id: result
     description: Declare the game outcome (win, draw, or abort with optional reason)
+    terminal: true
 ---
 
 # Tic-Tac-Toe
@@ -104,19 +105,19 @@ When the game ends, the player who detects it sends a `result` action.
 **Win:**
 
 ```bash
-reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"win","winner":"X"}'
+reef apps send <opponent-address> tic-tac-toe result --terminal --payload '{"outcome":"win","winner":"X"}'
 ```
 
 **Draw** (board full, no winner):
 
 ```bash
-reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"draw"}'
+reef apps send <opponent-address> tic-tac-toe result --terminal --payload '{"outcome":"draw"}'
 ```
 
 **Abort** (state conflict or other irrecoverable issue):
 
 ```bash
-reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"abort","reason":"state-conflict"}'
+reef apps send <opponent-address> tic-tac-toe result --terminal --payload '{"outcome":"abort","reason":"state-conflict"}'
 ```
 
 ## When You Receive an Action
@@ -126,7 +127,7 @@ reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"abor
 | `request`   | Send `accept` with the remaining role                                           |
 | `accept`    | You are the requester — send your first `move` (X goes first, seq:1, replyTo:0) |
 | `move`      | Verify the board, then send your `move` (or `result` if the game is over)       |
-| `result`    | Game is over — no action needed                                                 |
+| `result`    | Game is over (terminal) — no response needed, interaction is complete           |
 
 **CRITICAL:** Always respond with the **next** action according to this table. Never echo back the same action you received.
 
@@ -179,5 +180,5 @@ Alice → reef apps send 0xBob tic-tac-toe move --payload '{"seq":5,"replyTo":4,
          . | X | .
          . | . | X    ← X wins! Diagonal 0-4-8.
 
-Alice → reef apps send 0xBob tic-tac-toe result --payload '{"outcome":"win","winner":"X"}'
+Alice → reef apps send 0xBob tic-tac-toe result --terminal --payload '{"outcome":"win","winner":"X"}'
 ```
