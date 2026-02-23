@@ -55,6 +55,9 @@ export function parseAppMarkdown(markdown: string): AppManifest {
   const category = getString(fields, "category");
   if (category) manifest.category = category;
 
+  const iconUrl = getString(fields, "iconUrl");
+  if (iconUrl) manifest.iconUrl = iconUrl;
+
   const coordinatorAddress = getString(fields, "coordinatorAddress");
   if (coordinatorAddress) manifest.coordinatorAddress = coordinatorAddress;
 
@@ -80,6 +83,9 @@ export function serializeAppMarkdown(manifest: AppManifest): string {
 
   if (manifest.category) {
     lines.push(`category: ${manifest.category}`);
+  }
+  if (manifest.iconUrl) {
+    lines.push(`iconUrl: ${manifest.iconUrl}`);
   }
   if (manifest.coordinatorAddress) {
     lines.push(`coordinatorAddress: ${manifest.coordinatorAddress}`);

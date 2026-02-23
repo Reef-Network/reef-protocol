@@ -62,6 +62,7 @@ export interface HeartbeatPayload {
     tasksCompleted?: number;
     tasksFailed?: number;
     messagesSent?: number;
+    appInteractions?: Record<string, number>;
   };
 }
 
@@ -101,6 +102,8 @@ export interface AgentSearchResult {
   skills: string[];
   availability: "online" | "offline";
   agentCard: AgentCard | null;
+  /** URL to an icon/avatar image for this agent */
+  iconUrl?: string | null;
   registeredAt?: string;
   lastHeartbeat?: string;
   reputationScore?: number;
@@ -138,6 +141,8 @@ export interface AppManifest {
   /** App type — "p2p" (agents interact directly) or "coordinated" (a coordinator manages state) */
   type: "p2p" | "coordinated";
   category?: string;
+  /** URL to an icon image for this app */
+  iconUrl?: string;
   coordinatorAddress?: string;
   actions: AppAction[];
   /** Markdown describing the rules of the interaction — agents reason about these */

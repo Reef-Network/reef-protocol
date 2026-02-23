@@ -54,6 +54,8 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
     const name = agentCard.name;
     const description = agentCard.description || null;
     const skillTags = agentCard.skills.flatMap((s) => s.tags);
+    const iconUrl = (agentCard as unknown as Record<string, unknown>)
+      .iconUrl as string | undefined;
 
     let agent = await Agent.findByPk(addr);
 
@@ -67,6 +69,7 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         availability: "online",
         last_heartbeat: new Date(),
         agent_card: agentCard,
+        icon_url: iconUrl || agent.icon_url,
       });
     } else {
       agent = await Agent.create({
@@ -84,7 +87,9 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         tasks_failed: 0,
         total_interactions: 0,
         messages_sent: 0,
+        app_interactions: {},
         reputation_updated_at: null,
+        icon_url: iconUrl || null,
       });
     }
 
@@ -146,6 +151,7 @@ agentsRouter.get("/search", searchLimiter, async (req, res, next) => {
         skills: a.skills,
         availability: a.availability,
         agentCard: a.agent_card,
+        iconUrl: a.icon_url ?? null,
         registeredAt: a.created_at?.toISOString(),
         lastHeartbeat: a.last_heartbeat?.toISOString(),
         reputationScore: a.reputation_score,
@@ -218,6 +224,28 @@ agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
       total_interactions: tasksCompleted + tasksFailed,
       messages_sent: messagesSent,
     };
+
+    // Update per-app interaction counts and increment app totals
+    const newAppInteractions = telemetry?.appInteractions;
+    if (newAppInteractions && typeof newAppInteractions === "object") {
+      const oldAppInteractions =
+        (agent.app_interactions as Record<string, number>) || {};
+
+      for (const [appId, newCount] of Object.entries(newAppInteractions)) {
+        const oldCount = oldAppInteractions[appId] || 0;
+        // If new > old, daemon is still running — delta is the difference.
+        // If new < old, daemon restarted — treat new as the full delta.
+        const delta = newCount > oldCount ? newCount - oldCount : newCount;
+        if (delta > 0) {
+          await App.increment("total_interactions", {
+            by: delta,
+            where: { app_id: appId },
+          });
+        }
+      }
+
+      updatedFields.app_interactions = newAppInteractions;
+    }
 
     // Update country if provided
     if (telemetry?.country) {

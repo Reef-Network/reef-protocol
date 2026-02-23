@@ -809,3 +809,84 @@ describe("GET /apps/search?sortBy=interactions", () => {
     expect(res.body.apps[0].appId).toBe("high-interact-app");
   });
 });
+
+describe("iconUrl support", () => {
+  it("stores iconUrl from agentCard on registration", async () => {
+    const card = makeAgentCard({
+      name: "Icon Agent",
+      iconUrl: "https://example.com/agent-icon.png",
+    });
+    const res = await request.post("/agents/register").send({
+      address: "0xIconAgent001",
+      agentCard: card,
+    });
+    expect(res.status).toBe(200);
+
+    const search = await request.get("/agents/search?q=Icon%20Agent");
+    expect(search.status).toBe(200);
+    const agent = search.body.agents.find(
+      (a: { address: string }) => a.address === "0xiconagent001",
+    );
+    expect(agent).toBeDefined();
+    expect(agent.iconUrl).toBe("https://example.com/agent-icon.png");
+  });
+
+  it("returns null iconUrl when not provided", async () => {
+    // The original test agent was registered without iconUrl
+    const search = await request.get("/agents/search?q=Test%20Agent");
+    expect(search.status).toBe(200);
+    const agentWithoutIcon = search.body.agents.find(
+      (a: { iconUrl: string | null }) => a.iconUrl === null,
+    );
+    expect(agentWithoutIcon).toBeDefined();
+    expect(agentWithoutIcon.iconUrl).toBeNull();
+  });
+
+  it("stores iconUrl from app manifest on registration", async () => {
+    const iconAppKey = generatePrivateKey();
+    const iconAppAccount = privateKeyToAccount(iconAppKey);
+    const iconAppAddr = iconAppAccount.address;
+
+    // Register agent first
+    await request.post("/agents/register").send({
+      address: iconAppAddr,
+      agentCard: makeAgentCard({ name: "Icon App Owner" }),
+    });
+
+    const res = await request.post("/apps/register").send({
+      address: iconAppAddr,
+      appId: "icon-test-app",
+      manifest: {
+        appId: "icon-test-app",
+        name: "Icon Test App",
+        description: "An app with an icon",
+        version: "1.0.0",
+        type: "p2p",
+        iconUrl: "https://example.com/app-icon.png",
+        actions: [{ id: "play", name: "Play", description: "Start playing" }],
+        minParticipants: 2,
+      },
+    });
+    expect(res.status).toBe(200);
+
+    const search = await request.get("/apps/search?q=Icon%20Test");
+    expect(search.status).toBe(200);
+    const app = search.body.apps.find(
+      (a: { appId: string }) => a.appId === "icon-test-app",
+    );
+    expect(app).toBeDefined();
+    expect(app.iconUrl).toBe("https://example.com/app-icon.png");
+  });
+
+  it("returns null iconUrl for apps without icon", async () => {
+    const search = await request.get("/apps/search");
+    expect(search.status).toBe(200);
+    // Find an app that was registered without iconUrl
+    const appWithoutIcon = search.body.apps.find(
+      (a: { appId: string }) => a.appId !== "icon-test-app",
+    );
+    if (appWithoutIcon) {
+      expect(appWithoutIcon.iconUrl).toBeNull();
+    }
+  });
+});

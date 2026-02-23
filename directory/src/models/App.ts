@@ -17,6 +17,7 @@ export interface AppAttributes {
   total_interactions: number;
   reputation_updated_at: Date | null;
   last_refreshed: Date | null;
+  icon_url: string | null;
 }
 
 export class App extends Model<AppAttributes> {
@@ -35,6 +36,7 @@ export class App extends Model<AppAttributes> {
   declare total_interactions: number;
   declare reputation_updated_at: Date | null;
   declare last_refreshed: Date | null;
+  declare icon_url: string | null;
   declare readonly created_at: Date;
   declare readonly updated_at: Date;
 }
@@ -109,6 +111,11 @@ export function initAppModel(sequelize: Sequelize): void {
       last_refreshed: {
         type: DataTypes.DATE,
         allowNull: true,
+      },
+      icon_url: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        defaultValue: null,
       },
     },
     {

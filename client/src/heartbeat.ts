@@ -11,6 +11,7 @@ export interface TelemetryData {
   tasksCompleted?: number;
   tasksFailed?: number;
   messagesSent?: number;
+  appInteractions?: Record<string, number>;
   country?: string;
 }
 
