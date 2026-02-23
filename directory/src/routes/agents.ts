@@ -83,6 +83,7 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         tasks_completed: 0,
         tasks_failed: 0,
         total_interactions: 0,
+        messages_sent: 0,
         reputation_updated_at: null,
       });
     }
@@ -204,6 +205,7 @@ agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
     const telemetry = body.telemetry;
     const tasksCompleted = Math.max(0, telemetry?.tasksCompleted ?? 0);
     const tasksFailed = Math.max(0, telemetry?.tasksFailed ?? 0);
+    const messagesSent = Math.max(0, telemetry?.messagesSent ?? 0);
 
     // Update heartbeat and recompute reputation
     const now = new Date();
@@ -214,6 +216,7 @@ agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
       tasks_completed: tasksCompleted,
       tasks_failed: tasksFailed,
       total_interactions: tasksCompleted + tasksFailed,
+      messages_sent: messagesSent,
     };
 
     // Update country if provided

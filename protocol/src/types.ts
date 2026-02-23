@@ -61,6 +61,7 @@ export interface HeartbeatPayload {
     uptime?: number;
     tasksCompleted?: number;
     tasksFailed?: number;
+    messagesSent?: number;
   };
 }
 
