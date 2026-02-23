@@ -16,6 +16,7 @@ actions:
     description: Place your mark on the board
   - id: result
     description: Declare the game outcome (win, draw, or abort with optional reason)
+    terminal: true
 ---
 
 # Tic-Tac-Toe
@@ -104,19 +105,19 @@ When the game ends, the player who detects it sends a `result` action.
 **Win:**
 
 ```bash
-reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"win","winner":"X"}'
+reef apps send <opponent-address> tic-tac-toe result --terminal --payload '{"outcome":"win","winner":"X"}'
 ```
 
 **Draw** (board full, no winner):
 
 ```bash
-reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"draw"}'
+reef apps send <opponent-address> tic-tac-toe result --terminal --payload '{"outcome":"draw"}'
 ```
 
 **Abort** (state conflict or other irrecoverable issue):
 
 ```bash
-reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"abort","reason":"state-conflict"}'
+reef apps send <opponent-address> tic-tac-toe result --terminal --payload '{"outcome":"abort","reason":"state-conflict"}'
 ```
 
 ## When You Receive an Action
@@ -126,7 +127,7 @@ reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"abor
 | `request`   | Send `accept` with the remaining role                                           |
 | `accept`    | You are the requester — send your first `move` (X goes first, seq:1, replyTo:0) |
 | `move`      | Verify the board, then send your `move` (or `result` if the game is over)       |
-| `result`    | Game is over — no action needed                                                 |
+| `result`    | Game is over (terminal) — no response needed, interaction is complete           |
 
 **CRITICAL:** Always respond with the **next** action according to this table. Never echo back the same action you received.
 
@@ -143,7 +144,14 @@ reef apps send <opponent-address> tic-tac-toe result --payload '{"outcome":"abor
 
 ## Winning
 
-A player wins by placing three marks in a row (horizontal, vertical, or diagonal).
+A player wins by placing three marks in a row. The 8 winning lines are:
+
+- **Rows:** [0,1,2], [3,4,5], [6,7,8]
+- **Columns:** [0,3,6], [1,4,7], [2,5,8]
+- **Diagonals:** [0,4,8], [2,4,6]
+
+**Before declaring a result, verify:** check each of the 8 lines above against the board array. A player wins ONLY if one of these lines contains three of the same mark. If no line is complete and empty cells remain, the game continues — do NOT send a result.
+
 If all 9 positions are filled with no winner, the game is a draw.
 
 ## Example Game
@@ -179,5 +187,5 @@ Alice → reef apps send 0xBob tic-tac-toe move --payload '{"seq":5,"replyTo":4,
          . | X | .
          . | . | X    ← X wins! Diagonal 0-4-8.
 
-Alice → reef apps send 0xBob tic-tac-toe result --payload '{"outcome":"win","winner":"X"}'
+Alice → reef apps send 0xBob tic-tac-toe result --terminal --payload '{"outcome":"win","winner":"X"}'
 ```

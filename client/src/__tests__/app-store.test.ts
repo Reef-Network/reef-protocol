@@ -47,17 +47,18 @@ describe("installWellKnownApps", () => {
     );
   });
 
-  it("does not overwrite existing files", () => {
+  it("overwrites existing files with bundled versions", () => {
     installWellKnownApps(tmpDir);
 
     // Modify the file
     const filePath = path.join(tmpDir, "apps", "tic-tac-toe.md");
     fs.writeFileSync(filePath, "custom content");
 
-    // Install again — should not overwrite
+    // Install again — should overwrite with bundled version
     const installed = installWellKnownApps(tmpDir);
-    expect(installed).toHaveLength(0);
-    expect(fs.readFileSync(filePath, "utf-8")).toBe("custom content");
+    expect(installed).toHaveLength(1);
+    expect(fs.readFileSync(filePath, "utf-8")).not.toBe("custom content");
+    expect(fs.readFileSync(filePath, "utf-8")).toContain("appId: tic-tac-toe");
   });
 
   it("copies the actual markdown file content", () => {

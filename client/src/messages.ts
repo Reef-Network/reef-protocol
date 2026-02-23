@@ -84,6 +84,22 @@ export function formatAppActionForAgent(text: string, sender: string): string {
   const appId = appMatch?.[1];
   const action = appMatch?.[2];
 
+  // Detect terminal flag in the message data
+  const isTerminal =
+    text.includes('"terminal":true') || text.includes('"terminal": true');
+
+  if (isTerminal && appId) {
+    return [
+      `[Reef app-action from ${sender}]`,
+      text,
+      "",
+      `This interaction is now COMPLETE. The "${appId}" app session has ended.`,
+      `To review the full interaction history, run:`,
+      `  reef messages --from ${sender}`,
+      `No further action is needed — do NOT send any more app actions for this interaction.`,
+    ].join("\n");
+  }
+
   if (action === "request" && appId) {
     return [
       `[Reef app-action from ${sender}]`,

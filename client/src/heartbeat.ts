@@ -3,7 +3,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import type { Hex } from "viem";
 
 import { DEFAULT_DIRECTORY_URL } from "@reef-protocol/protocol";
-const HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 export interface TelemetryData {
   messagesHandled?: number;

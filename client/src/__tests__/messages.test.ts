@@ -272,6 +272,18 @@ describe("formatAppActionForAgent", () => {
     expect(result).toContain(text);
   });
 
+  it("adds terminal completion instructions for terminal actions", () => {
+    const text =
+      '[app-action] tic-tac-toe/result: {"outcome":"win","winner":"X","terminal":true}';
+    const result = formatAppActionForAgent(text, "0xAlice");
+
+    expect(result).toContain("[Reef app-action from 0xAlice]");
+    expect(result).toContain("COMPLETE");
+    expect(result).toContain("tic-tac-toe");
+    expect(result).toContain("reef messages --from 0xAlice");
+    expect(result).toContain("No further action is needed");
+  });
+
   it("returns plain text unchanged", () => {
     const text = "Hello, how are you?";
     expect(formatAppActionForAgent(text, "0xAlice")).toBe(text);

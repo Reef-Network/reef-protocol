@@ -276,11 +276,16 @@ export async function appsSendCommand(
   address: string,
   appId: string,
   action: string,
-  opts: { payload?: string },
+  opts: { payload?: string; terminal?: boolean },
 ): Promise<void> {
   const configDir = getConfigDir();
   const payload = opts.payload ? JSON.parse(opts.payload) : {};
-  const dataPart = buildAppActionDataPart(appId, action, payload);
+  const dataPart = buildAppActionDataPart(
+    appId,
+    action,
+    payload,
+    opts.terminal ? { terminal: true } : undefined,
+  );
   const message = createMessage("user", [dataPart]);
   const request = createSendMessageRequest(message);
   const encoded = encodeA2AMessage(
