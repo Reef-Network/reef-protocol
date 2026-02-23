@@ -2,7 +2,7 @@
 
 import type { AgentCard } from "@a2a-js/sdk";
 
-export const REEF_VERSION = "0.2.12";
+export const REEF_VERSION = "0.2.13";
 export const A2A_PROTOCOL_VERSION = "0.3.0";
 export const DEFAULT_DIRECTORY_URL =
   "https://reef-protocol-production.up.railway.app";
@@ -61,6 +61,7 @@ export interface HeartbeatPayload {
     uptime?: number;
     tasksCompleted?: number;
     tasksFailed?: number;
+    messagesSent?: number;
   };
 }
 
@@ -124,6 +125,8 @@ export interface AppAction {
   description: string;
   inputSchema?: Record<string, unknown>;
   roles?: string[];
+  /** When true, this action completes the interaction (e.g. a result action) */
+  terminal?: boolean;
 }
 
 /** Defines an app that runs on the Reef network */
@@ -179,6 +182,8 @@ export interface AppActionMessage {
   appId: string;
   action: string;
   payload: Record<string, unknown>;
+  /** When true, this action completes the interaction */
+  terminal?: boolean;
 }
 
 /** Search response for apps */

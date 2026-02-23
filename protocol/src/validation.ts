@@ -142,6 +142,7 @@ export const heartbeatPayloadSchema = z.object({
       uptime: z.number().optional(),
       tasksCompleted: z.number().int().min(0).optional(),
       tasksFailed: z.number().int().min(0).optional(),
+      messagesSent: z.number().int().min(0).optional(),
       country: z.string().length(2).toUpperCase().optional(),
     })
     .optional(),
@@ -169,6 +170,7 @@ export const appActionSchema = z.object({
   description: z.string(),
   inputSchema: z.record(z.unknown()).optional(),
   roles: z.array(z.string()).optional(),
+  terminal: z.boolean().optional(),
 });
 
 /** App manifest schema */

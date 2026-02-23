@@ -7,8 +7,9 @@ import {
   buildReefAgentCard,
   buildSkill,
   DEFAULT_DIRECTORY_URL,
+  extractAppAction,
 } from "@reef-protocol/protocol";
-import type { TaskState } from "@reef-protocol/protocol";
+import type { TaskState, DataPart } from "@reef-protocol/protocol";
 import { InMemoryTaskStore } from "@a2a-js/sdk/server";
 import {
   getOrCreateIdentity,
@@ -121,6 +122,7 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
 
   // Task outcome counters for reputation telemetry
   const taskCounters = { completed: 0, failed: 0 };
+  let messagesSent = 0;
 
   const onTaskOutcome = (state: TaskState) => {
     if (state === "completed") {
@@ -153,17 +155,12 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
   // Start heartbeat with dynamic telemetry
   const stopHeartbeat = startHeartbeat(DIRECTORY_URL, identity, {
     walletKey,
-    getTelemetry: () => {
-      // Return current counters and reset them (directory accumulates)
-      const snapshot = {
-        tasksCompleted: taskCounters.completed,
-        tasksFailed: taskCounters.failed,
-        country: agentConfig.country,
-      };
-      taskCounters.completed = 0;
-      taskCounters.failed = 0;
-      return snapshot;
-    },
+    getTelemetry: () => ({
+      tasksCompleted: taskCounters.completed,
+      tasksFailed: taskCounters.failed,
+      messagesSent,
+      country: agentConfig.country,
+    }),
   });
 
   // Create task store and logic handler
@@ -197,6 +194,24 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
       },
       configDir,
     );
+
+    // Count inbound terminal app-actions as completed tasks (both participants get credit)
+    if (decoded && isA2ARequest(decoded)) {
+      const params = decoded.params as {
+        message?: { parts?: Array<Record<string, unknown>> };
+      };
+      const parts = params?.message?.parts;
+      if (Array.isArray(parts)) {
+        for (const p of parts) {
+          if (p.kind === "data") {
+            const appAction = extractAppAction(p as unknown as DataPart);
+            if (appAction?.terminal) {
+              onTaskOutcome("completed");
+            }
+          }
+        }
+      }
+    }
 
     // Only run built-in handler for protocol ops (tasks/get, tasks/cancel).
     // message/send is handled by the OpenClaw plugin via messages.json.
@@ -284,6 +299,7 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
           // Relay pre-encoded A2A payload directly (callers encode before sending)
           const dm = await agent.createDmWithAddress(address as `0x${string}`);
           await dm.sendText(text);
+          messagesSent++;
 
           // Store outbound message for conversation history
           const outboundDecoded = decodeA2AMessage(text);
@@ -303,21 +319,20 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
             configDir,
           );
 
-          // Count outbound app-actions as completed tasks for reputation
+          // Count terminal app-actions as completed tasks for reputation
           if (outboundDecoded && isA2ARequest(outboundDecoded)) {
             const params = outboundDecoded.params as {
               message?: { parts?: Array<Record<string, unknown>> };
             };
             const parts = params?.message?.parts;
             if (Array.isArray(parts)) {
-              const hasAppAction = parts.some(
-                (p) =>
-                  p.kind === "data" &&
-                  typeof (p.data as Record<string, unknown>)?.appId ===
-                    "string",
-              );
-              if (hasAppAction) {
-                onTaskOutcome("completed");
+              for (const p of parts) {
+                if (p.kind === "data") {
+                  const appAction = extractAppAction(p as unknown as DataPart);
+                  if (appAction?.terminal) {
+                    onTaskOutcome("completed");
+                  }
+                }
               }
             }
           }
@@ -329,6 +344,14 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
           res.end(JSON.stringify({ error: (err as Error).message }));
         }
       });
+    } else if (req.method === "GET" && req.url === "/status") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          tasksCompleted: taskCounters.completed,
+          tasksFailed: taskCounters.failed,
+        }),
+      );
     } else {
       res.writeHead(404);
       res.end();

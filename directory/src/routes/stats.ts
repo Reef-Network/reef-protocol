@@ -64,6 +64,24 @@ async function computeLiveStats() {
     where: { availability: "available" },
   });
 
+  // Count unique skills across all agents
+  const allSkills = new Set<string>();
+  for (const agent of agents) {
+    if (Array.isArray(agent.skills)) {
+      for (const skill of agent.skills) {
+        allSkills.add(skill);
+      }
+    }
+  }
+  const uniqueSkills = allSkills.size;
+
+  // Sum messages_sent across all agents
+  const msgResult = (await Agent.findOne({
+    attributes: [[fn("COALESCE", fn("SUM", col("messages_sent")), 0), "total"]],
+    raw: true,
+  })) as unknown as { total: number } | null;
+  const totalMessages = Number(msgResult?.total ?? 0);
+
   return {
     totalAgents,
     onlineAgents,
@@ -71,6 +89,8 @@ async function computeLiveStats() {
     averageReputationScore,
     totalApps,
     availableApps,
+    uniqueSkills,
+    totalMessages,
   };
 }
 
@@ -108,6 +128,25 @@ statsRouter.get("/", readLimiter, async (_req, res, next) => {
         where: { availability: "available" },
       });
 
+      // Compute live unique skills count
+      const agents = await Agent.findAll({ attributes: ["skills"] });
+      const allSkills = new Set<string>();
+      for (const agent of agents) {
+        if (Array.isArray(agent.skills)) {
+          for (const skill of agent.skills) {
+            allSkills.add(skill);
+          }
+        }
+      }
+
+      // Compute live total messages
+      const msgResult = (await Agent.findOne({
+        attributes: [
+          [fn("COALESCE", fn("SUM", col("messages_sent")), 0), "total"],
+        ],
+        raw: true,
+      })) as unknown as { total: number } | null;
+
       data = {
         totalAgents: snapshot.total_agents,
         onlineAgents: snapshot.online_agents,
@@ -115,6 +154,8 @@ statsRouter.get("/", readLimiter, async (_req, res, next) => {
         averageReputationScore,
         totalApps,
         availableApps,
+        uniqueSkills: allSkills.size,
+        totalMessages: Number(msgResult?.total ?? 0),
         capturedAt: snapshot.captured_at.toISOString(),
       };
     } else {
@@ -123,6 +164,43 @@ statsRouter.get("/", readLimiter, async (_req, res, next) => {
 
     statsCache = { data, expiresAt: now + STATS_CACHE_TTL_MS };
     res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /stats/history?days=30
+ * Returns snapshot history downsampled to 1 per day.
+ */
+statsRouter.get("/history", readLimiter, async (req, res, next) => {
+  try {
+    const days = Math.min(
+      Math.max(1, parseInt(req.query.days as string) || 30),
+      90,
+    );
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const snapshots = await Snapshot.findAll({
+      where: { captured_at: { [Op.gte]: since } },
+      order: [["captured_at", "ASC"]],
+    });
+
+    // Downsample to 1 per day (take last snapshot of each day)
+    const byDay = new Map<string, (typeof snapshots)[number]>();
+    for (const snap of snapshots) {
+      const day = snap.captured_at.toISOString().slice(0, 10);
+      byDay.set(day, snap);
+    }
+
+    const history = [...byDay.values()].map((s) => ({
+      totalAgents: s.total_agents,
+      onlineAgents: s.online_agents,
+      messagesReported: s.messages_reported,
+      capturedAt: s.captured_at.toISOString(),
+    }));
+
+    res.json({ history, days });
   } catch (err) {
     next(err);
   }

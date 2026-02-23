@@ -306,7 +306,7 @@ describe("POST /agents/heartbeat", () => {
     expect(res.status).toBe(404);
   });
 
-  it("accumulates task telemetry", async () => {
+  it("overwrites task telemetry with cumulative values", async () => {
     const payload = await signedHeartbeat({
       telemetry: { tasksCompleted: 5, tasksFailed: 1 },
     });
@@ -315,7 +315,7 @@ describe("POST /agents/heartbeat", () => {
 
     expect(res.status).toBe(200);
 
-    // Verify counters were accumulated
+    // Verify counters were overwritten (daemon sends cumulative totals)
     const profile = await request.get(`/agents/${testAddress}`);
     expect(profile.body.tasksCompleted).toBe(5);
     expect(profile.body.tasksFailed).toBe(1);
@@ -694,5 +694,118 @@ describe("app ownership", () => {
     );
     expect(chess).toBeTruthy();
     expect(chess.registeredBy).toBe("0xappowner1");
+  });
+});
+
+describe("heartbeat messagesSent telemetry", () => {
+  it("stores messagesSent from heartbeat telemetry", async () => {
+    const payload = await signedHeartbeat({
+      telemetry: { tasksCompleted: 5, tasksFailed: 1, messagesSent: 42 },
+    });
+
+    const res = await request.post("/agents/heartbeat").send(payload);
+    expect(res.status).toBe(200);
+
+    const profile = await request.get(`/agents/${testAddress}`);
+    expect(profile.body.tasksCompleted).toBe(5);
+    expect(profile.body.tasksFailed).toBe(1);
+  });
+});
+
+describe("GET /stats enhanced fields", () => {
+  beforeEach(async () => {
+    const { clearStatsCache } = await import("../routes/stats.js");
+    clearStatsCache();
+  });
+
+  it("returns uniqueSkills and totalMessages", async () => {
+    const { Snapshot } = await import("../models/Snapshot.js");
+    await Snapshot.destroy({ where: {} });
+
+    const res = await request.get("/stats");
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.uniqueSkills).toBe("number");
+    expect(typeof res.body.totalMessages).toBe("number");
+    // We registered agents with skills so uniqueSkills should be > 0
+    expect(res.body.uniqueSkills).toBeGreaterThan(0);
+  });
+});
+
+describe("GET /stats/history", () => {
+  it("returns expected shape", async () => {
+    const { Snapshot } = await import("../models/Snapshot.js");
+
+    // Insert some test snapshots
+    await Snapshot.create({
+      total_agents: 10,
+      online_agents: 5,
+      messages_reported: 100,
+      top_skills: ["testing"],
+      captured_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    });
+    await Snapshot.create({
+      total_agents: 15,
+      online_agents: 8,
+      messages_reported: 200,
+      top_skills: ["testing"],
+      captured_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    });
+
+    const res = await request.get("/stats/history?days=7");
+
+    expect(res.status).toBe(200);
+    expect(res.body.days).toBe(7);
+    expect(Array.isArray(res.body.history)).toBe(true);
+    expect(res.body.history.length).toBeGreaterThan(0);
+
+    const entry = res.body.history[0];
+    expect(typeof entry.totalAgents).toBe("number");
+    expect(typeof entry.onlineAgents).toBe("number");
+    expect(typeof entry.messagesReported).toBe("number");
+    expect(typeof entry.capturedAt).toBe("string");
+  });
+});
+
+describe("GET /apps/search?sortBy=interactions", () => {
+  it("sorts apps by total_interactions descending", async () => {
+    // Register apps with different interaction counts via heartbeat piggybacking
+    // The coordinator's heartbeat already set reef-news to 3 interactions.
+    // Register another app with more interactions.
+    const highInteractionKey = generatePrivateKey();
+    const highInteractionAccount = privateKeyToAccount(highInteractionKey);
+    const highAddr = highInteractionAccount.address;
+
+    // Register agent
+    await request.post("/agents/register").send({
+      address: highAddr,
+      agentCard: makeAgentCard({ name: "High Interaction Agent" }),
+    });
+
+    // Register coordinated app
+    await request.post("/apps/register").send({
+      address: highAddr,
+      appId: "high-interact-app",
+      manifest: makeManifest({
+        appId: "high-interact-app",
+        name: "High Interact App",
+        coordinatorAddress: highAddr,
+      }),
+    });
+
+    // Send heartbeat with high interaction count
+    const payload = await signedHeartbeat({
+      address: highAddr,
+      _account: highInteractionAccount,
+      telemetry: { tasksCompleted: 50, tasksFailed: 5 },
+    });
+    await request.post("/agents/heartbeat").send(payload);
+
+    const res = await request.get("/apps/search?sortBy=interactions");
+    expect(res.status).toBe(200);
+    expect(res.body.apps.length).toBeGreaterThan(0);
+
+    // high-interact-app should be first since it has 55 interactions
+    expect(res.body.apps[0].appId).toBe("high-interact-app");
   });
 });

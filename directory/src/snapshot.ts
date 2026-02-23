@@ -1,4 +1,4 @@
-import { Op } from "sequelize";
+import { Op, fn, col } from "sequelize";
 import { Agent } from "./models/Agent.js";
 import { Snapshot } from "./models/Snapshot.js";
 import { config } from "./config.js";
@@ -37,10 +37,17 @@ export async function captureSnapshot(): Promise<void> {
     .slice(0, 10)
     .map(([skill]) => skill);
 
+  // Sum messages_sent across all agents
+  const msgResult = (await Agent.findOne({
+    attributes: [[fn("COALESCE", fn("SUM", col("messages_sent")), 0), "total"]],
+    raw: true,
+  })) as unknown as { total: number } | null;
+  const messagesReported = Number(msgResult?.total ?? 0);
+
   await Snapshot.create({
     total_agents: totalAgents,
     online_agents: onlineAgents,
-    messages_reported: 0,
+    messages_reported: messagesReported,
     top_skills: topSkills,
     captured_at: new Date(),
   });

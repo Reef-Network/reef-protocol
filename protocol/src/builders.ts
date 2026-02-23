@@ -121,6 +121,7 @@ export function buildAppAction(
   options?: {
     inputSchema?: Record<string, unknown>;
     roles?: string[];
+    terminal?: boolean;
   },
 ): AppAction {
   return {
@@ -129,6 +130,7 @@ export function buildAppAction(
     description,
     inputSchema: options?.inputSchema,
     roles: options?.roles,
+    terminal: options?.terminal,
   };
 }
 
@@ -170,10 +172,15 @@ export function buildAppActionDataPart(
   appId: string,
   action: string,
   payload: Record<string, unknown> = {},
+  options?: { terminal?: boolean },
 ): DataPart {
+  const data: Record<string, unknown> = { appId, action, payload };
+  if (options?.terminal) {
+    data.terminal = true;
+  }
   return {
     kind: "data",
-    data: { appId, action, payload },
+    data,
   };
 }
 
@@ -181,11 +188,15 @@ export function buildAppActionDataPart(
 export function extractAppAction(part: DataPart): AppActionMessage | null {
   const data = part.data as Record<string, unknown>;
   if (typeof data.appId === "string" && typeof data.action === "string") {
-    return {
+    const result: AppActionMessage = {
       appId: data.appId,
       action: data.action,
       payload: (data.payload as Record<string, unknown>) ?? {},
     };
+    if (data.terminal === true) {
+      result.terminal = true;
+    }
+    return result;
   }
   return null;
 }

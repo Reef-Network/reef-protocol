@@ -1,3 +1,5 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { loadIdentity, getConfigDir } from "../identity.js";
 import { loadContacts } from "../contacts.js";
 import {
@@ -5,6 +7,25 @@ import {
   A2A_PROTOCOL_VERSION,
   DEFAULT_DIRECTORY_URL,
 } from "@reef-protocol/protocol";
+
+/** Query the local daemon's /status endpoint for pending task counts */
+async function queryDaemonStatus(
+  configDir: string,
+): Promise<{ tasksCompleted: number; tasksFailed: number } | null> {
+  const lockPath = path.join(configDir, "daemon.lock");
+  if (!fs.existsSync(lockPath)) return null;
+  try {
+    const port = fs.readFileSync(lockPath, "utf-8").trim();
+    const res = await fetch(`http://127.0.0.1:${port}/status`);
+    if (!res.ok) return null;
+    return (await res.json()) as {
+      tasksCompleted: number;
+      tasksFailed: number;
+    };
+  } catch {
+    return null;
+  }
+}
 
 export async function statusCommand(): Promise<void> {
   const configDir = getConfigDir();
@@ -39,6 +60,18 @@ export async function statusCommand(): Promise<void> {
       }
     } catch {
       // Directory may be offline — skip reputation display
+    }
+
+    // Show pending local task counts from daemon
+    const daemonStatus = await queryDaemonStatus(configDir);
+    if (daemonStatus) {
+      const pending = daemonStatus.tasksCompleted + daemonStatus.tasksFailed;
+      if (pending > 0) {
+        console.log(`\nDaemon (pending):`);
+        console.log(`  Tasks done:     +${daemonStatus.tasksCompleted}`);
+        console.log(`  Tasks failed:   +${daemonStatus.tasksFailed}`);
+        console.log(`  (will sync to directory on next heartbeat)`);
+      }
     }
   } else {
     console.log("\nIdentity: Not created yet");

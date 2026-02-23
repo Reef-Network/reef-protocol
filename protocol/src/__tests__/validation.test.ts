@@ -357,6 +357,25 @@ describe("appActionSchema", () => {
     });
     expect(result.roles).toEqual(["contributor"]);
   });
+
+  it("accepts optional terminal flag", () => {
+    const result = appActionSchema.parse({
+      id: "result",
+      name: "Result",
+      description: "Declare the outcome",
+      terminal: true,
+    });
+    expect(result.terminal).toBe(true);
+  });
+
+  it("allows terminal to be omitted", () => {
+    const result = appActionSchema.parse({
+      id: "move",
+      name: "Move",
+      description: "Make a move",
+    });
+    expect(result.terminal).toBeUndefined();
+  });
 });
 
 describe("appManifestSchema", () => {
@@ -518,6 +537,21 @@ describe("buildAppActionDataPart", () => {
     const part = buildAppActionDataPart("chess", "resign");
     expect(part.data.payload).toEqual({});
   });
+
+  it("includes terminal flag when set", () => {
+    const part = buildAppActionDataPart(
+      "chess",
+      "result",
+      { outcome: "draw" },
+      { terminal: true },
+    );
+    expect(part.data.terminal).toBe(true);
+  });
+
+  it("omits terminal flag when not set", () => {
+    const part = buildAppActionDataPart("chess", "move", { from: "e2" });
+    expect(part.data.terminal).toBeUndefined();
+  });
 });
 
 describe("extractAppAction", () => {
@@ -544,5 +578,33 @@ describe("extractAppAction", () => {
     const part = { kind: "data" as const, data: { appId: "chess" } };
     const result = extractAppAction(part);
     expect(result).toBeNull();
+  });
+
+  it("extracts terminal flag when present", () => {
+    const part = {
+      kind: "data" as const,
+      data: {
+        appId: "chess",
+        action: "result",
+        payload: { outcome: "draw" },
+        terminal: true,
+      },
+    };
+    const result = extractAppAction(part);
+    expect(result).toEqual({
+      appId: "chess",
+      action: "result",
+      payload: { outcome: "draw" },
+      terminal: true,
+    });
+  });
+
+  it("omits terminal when not present in data", () => {
+    const part = {
+      kind: "data" as const,
+      data: { appId: "chess", action: "move", payload: {} },
+    };
+    const result = extractAppAction(part);
+    expect(result?.terminal).toBeUndefined();
   });
 });
