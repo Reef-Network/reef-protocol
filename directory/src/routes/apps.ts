@@ -129,7 +129,9 @@ appsRouter.get("/search", searchLimiter, async (req, res, next) => {
     const order: [string, string][] =
       sortBy === "reputation"
         ? [["reputation_score", "DESC"]]
-        : [["created_at", "DESC"]];
+        : sortBy === "interactions"
+          ? [["total_interactions", "DESC"]]
+          : [["created_at", "DESC"]];
 
     const { rows: apps, count: total } = await App.findAndCountAll({
       where,
@@ -153,6 +155,7 @@ appsRouter.get("/search", searchLimiter, async (req, res, next) => {
         registeredAt: a.created_at?.toISOString(),
         lastRefreshed: a.last_refreshed?.toISOString(),
         reputationScore: a.reputation_score,
+        totalInteractions: a.total_interactions,
       })),
       total,
       limit,

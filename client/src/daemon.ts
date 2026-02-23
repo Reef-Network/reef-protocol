@@ -122,6 +122,7 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
 
   // Task outcome counters for reputation telemetry
   const taskCounters = { completed: 0, failed: 0 };
+  let messagesSent = 0;
 
   const onTaskOutcome = (state: TaskState) => {
     if (state === "completed") {
@@ -157,6 +158,7 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
     getTelemetry: () => ({
       tasksCompleted: taskCounters.completed,
       tasksFailed: taskCounters.failed,
+      messagesSent,
       country: agentConfig.country,
     }),
   });
@@ -297,6 +299,7 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
           // Relay pre-encoded A2A payload directly (callers encode before sending)
           const dm = await agent.createDmWithAddress(address as `0x${string}`);
           await dm.sendText(text);
+          messagesSent++;
 
           // Store outbound message for conversation history
           const outboundDecoded = decodeA2AMessage(text);

@@ -10,6 +10,7 @@ export interface TelemetryData {
   uptime?: number;
   tasksCompleted?: number;
   tasksFailed?: number;
+  messagesSent?: number;
   country?: string;
 }
 
