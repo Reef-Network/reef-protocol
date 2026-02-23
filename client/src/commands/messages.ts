@@ -36,7 +36,11 @@ export function messagesCommand(options: MessagesOptions): void {
   // Filter by sender address (case-insensitive prefix match)
   if (options.from) {
     const from = options.from.toLowerCase();
-    messages = messages.filter((m) => m.from.toLowerCase().includes(from));
+    messages = messages.filter(
+      (m) =>
+        m.from.toLowerCase().includes(from) ||
+        (m.to && m.to.toLowerCase().includes(from)),
+    );
   }
 
   // Filter by timestamp
@@ -127,7 +131,10 @@ function printMessage(msg: InboxMessage): void {
   const dateStr = date.toISOString().slice(0, 16).replace("T", " ");
   const method = msg.method || "plain";
   const text = extractReadableText(msg.text);
-  console.log(`[${dateStr}] ${msg.from} (${method})`);
+  const isOutbound = msg.direction === "outbound";
+  const arrow = isOutbound ? "\u2192" : "\u2190";
+  const peer = isOutbound ? (msg.to ?? "unknown") : msg.from;
+  console.log(`[${dateStr}] ${arrow} ${peer} (${method})`);
   console.log(`  ${text}\n`);
 }
 

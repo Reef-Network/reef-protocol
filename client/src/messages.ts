@@ -11,6 +11,8 @@ export interface InboxMessage {
   text: string;
   method?: string;
   timestamp: string;
+  direction?: "inbound" | "outbound";
+  to?: string;
 }
 
 function messagesPath(configDir: string): string {
@@ -45,9 +47,12 @@ export function appendMessage(msg: InboxMessage, configDir?: string): void {
   const messages = loadMessages(dir);
   if (messages.some((m) => m.id === msg.id)) return; // dedup by message ID
 
-  // Content-hash dedup: skip if same from+text within time window
+  // Content-hash dedup: skip if same from+text+direction within time window
   const now = new Date(msg.timestamp).getTime();
+  const msgDirection = msg.direction ?? "inbound";
   const isDuplicate = messages.some((m) => {
+    const mDirection = m.direction ?? "inbound";
+    if (mDirection !== msgDirection) return false;
     if (m.from !== msg.from || m.text !== msg.text) return false;
     const age = now - new Date(m.timestamp).getTime();
     return age >= 0 && age < DEFAULT_DEDUP_WINDOW_MS;
