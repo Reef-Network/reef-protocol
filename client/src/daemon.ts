@@ -1,6 +1,7 @@
 import "dotenv/config";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { randomUUID } from "node:crypto";
 import * as http from "node:http";
 import {
   buildReefAgentCard,
@@ -283,6 +284,44 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
           // Relay pre-encoded A2A payload directly (callers encode before sending)
           const dm = await agent.createDmWithAddress(address as `0x${string}`);
           await dm.sendText(text);
+
+          // Store outbound message for conversation history
+          const outboundDecoded = decodeA2AMessage(text);
+          appendMessage(
+            {
+              id: randomUUID(),
+              from: identity.address,
+              to: address,
+              text,
+              method:
+                outboundDecoded && isA2ARequest(outboundDecoded)
+                  ? outboundDecoded.method
+                  : undefined,
+              timestamp: new Date().toISOString(),
+              direction: "outbound",
+            },
+            configDir,
+          );
+
+          // Count outbound app-actions as completed tasks for reputation
+          if (outboundDecoded && isA2ARequest(outboundDecoded)) {
+            const params = outboundDecoded.params as {
+              message?: { parts?: Array<Record<string, unknown>> };
+            };
+            const parts = params?.message?.parts;
+            if (Array.isArray(parts)) {
+              const hasAppAction = parts.some(
+                (p) =>
+                  p.kind === "data" &&
+                  typeof (p.data as Record<string, unknown>)?.appId ===
+                    "string",
+              );
+              if (hasAppAction) {
+                onTaskOutcome("completed");
+              }
+            }
+          }
+
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ ok: true }));
         } catch (err) {
