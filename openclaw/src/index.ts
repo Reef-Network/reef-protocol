@@ -132,8 +132,12 @@ function extractParts(parts: Array<Record<string, unknown>>): string[] {
         part as { kind: "data"; data: Record<string, unknown> },
       );
       if (appAction) {
+        // Include terminal flag in the text representation so downstream
+        // formatters (formatAppActionForAgent) can detect interaction completion.
+        const data: Record<string, unknown> = { ...appAction.payload };
+        if (appAction.terminal) data.terminal = true;
         segments.push(
-          `[app-action] ${appAction.appId}/${appAction.action}: ${JSON.stringify(appAction.payload)}`,
+          `[app-action] ${appAction.appId}/${appAction.action}: ${JSON.stringify(data)}`,
         );
       }
     }
@@ -566,6 +570,14 @@ const reefChannel = {
                 `[Reef reply from ${msg.from}]:\n${text}`,
                 { sessionKey: mainKey },
               );
+              // Also record on the peer session so subsequent dispatches
+              // (e.g. app-actions from this peer) have conversational context.
+              if (mainKey !== route.sessionKey) {
+                runtime.system.enqueueSystemEvent(
+                  `[Reef reply from ${msg.from}]:\n${text}`,
+                  { sessionKey: route.sessionKey },
+                );
+              }
               notifier.push({
                 type: "reply",
                 peer: msg.from,
@@ -623,7 +635,7 @@ const reefChannel = {
               direction: "inbound",
             });
             runtime.system.enqueueSystemEvent(
-              `[reef] inbound from ${msg.from} (turn ${turnNumber}/${effectiveMax}): ${text.slice(0, 200)}`,
+              `[reef] inbound from ${msg.from} (turn ${turnNumber}/${effectiveMax}): ${text}`,
               { sessionKey: route.sessionKey },
             );
 
@@ -650,6 +662,68 @@ const reefChannel = {
                           `[reef:app] agent responded to ${msg.from}:\n${responseText}`,
                           { sessionKey: mainKey },
                         );
+
+                        // Detect terminal outbound action from the agent's
+                        // response — e.g. agent ran `reef apps send ... result --terminal`
+                        const isOutboundTerminal =
+                          responseText.includes("--terminal");
+                        if (isOutboundTerminal) {
+                          try {
+                            // Parse appId from the inbound text that triggered this dispatch
+                            const outAppMatch = text.match(
+                              /^\[app-action\] ([^/]+)\//,
+                            );
+                            const outAppId = outAppMatch?.[1];
+                            if (!outAppId) {
+                              ctx.log?.warn?.(
+                                `[reef] outbound terminal: could not parse appId from text: ${text.slice(0, 120)}`,
+                              );
+                            }
+                            const allMsgs = loadMessages(configDir);
+                            const appTag = outAppId
+                              ? `[app-action] ${outAppId}/`
+                              : null;
+                            const relevantMsgs = allMsgs.filter((m) => {
+                              const isPeer =
+                                m.from.toLowerCase() ===
+                                  msg.from.toLowerCase() ||
+                                m.to?.toLowerCase() === msg.from.toLowerCase();
+                              if (!isPeer) return false;
+                              if (!appTag) return true;
+                              const body = extractText(m.text);
+                              return body.includes(appTag);
+                            });
+                            const lines: string[] = [
+                              `[Reef app interaction completed: ${outAppId ?? "unknown"} with ${msg.from}]`,
+                              "",
+                              "Full interaction log:",
+                            ];
+                            for (const m of relevantMsgs.slice(-20)) {
+                              const dir =
+                                m.direction === "outbound"
+                                  ? "→ you sent"
+                                  : "← received";
+                              const body = extractText(m.text);
+                              lines.push(`  ${dir}: ${body}`);
+                            }
+                            lines.push(
+                              "",
+                              `The interaction is now COMPLETE. Both participants received reputation credit.`,
+                            );
+                            runtime.system.enqueueSystemEvent(
+                              lines.join("\n"),
+                              { sessionKey: mainKey },
+                            );
+                          } catch (err) {
+                            ctx.log?.warn?.(
+                              `[reef] outbound terminal summary failed: ${err}`,
+                            );
+                            runtime.system.enqueueSystemEvent(
+                              `[reef:app] interaction completed with ${msg.from} (outbound terminal)`,
+                              { sessionKey: mainKey },
+                            );
+                          }
+                        }
                       }
                       return;
                     }
@@ -688,7 +762,7 @@ const reefChannel = {
                       direction: "outbound",
                     });
                     runtime.system.enqueueSystemEvent(
-                      `[reef] outbound to ${msg.from}: ${responseText.slice(0, 200)}`,
+                      `[reef] outbound to ${msg.from}: ${responseText}`,
                       { sessionKey: route.sessionKey },
                     );
                     notifier.push({
@@ -710,14 +784,72 @@ const reefChannel = {
             // Notify main session about app-action activity
             if (isAppAction) {
               const mainKey = route.mainSessionKey ?? route.sessionKey;
-              runtime.system.enqueueSystemEvent(
-                `[reef:app] received from ${msg.from}: ${text.replace("[app-action] ", "")}`,
-                { sessionKey: mainKey },
-              );
+              const isTerminal =
+                text.includes('"terminal":true') ||
+                text.includes('"terminal": true');
+
+              if (isTerminal) {
+                // Terminal action — build a full interaction summary for the
+                // main session so the agent knows what happened regardless of
+                // which session the human asks from.
+                try {
+                  const inAppMatch = text.match(/^\[app-action\] ([^/]+)\//);
+                  const inAppId = inAppMatch?.[1];
+                  if (!inAppId) {
+                    ctx.log?.warn?.(
+                      `[reef] inbound terminal: could not parse appId from text: ${text.slice(0, 120)}`,
+                    );
+                  }
+                  const allMsgs = loadMessages(configDir);
+                  const appTag = inAppId ? `[app-action] ${inAppId}/` : null;
+                  const relevantMsgs = allMsgs.filter((m) => {
+                    const isPeer =
+                      m.from.toLowerCase() === msg.from.toLowerCase() ||
+                      m.to?.toLowerCase() === msg.from.toLowerCase();
+                    if (!isPeer) return false;
+                    if (!appTag) return true;
+                    const body = extractText(m.text);
+                    return body.includes(appTag);
+                  });
+                  const lines: string[] = [
+                    `[Reef app interaction completed: ${inAppId ?? "unknown"} with ${msg.from}]`,
+                    "",
+                    "Full interaction log:",
+                  ];
+                  for (const m of relevantMsgs.slice(-20)) {
+                    const dir =
+                      m.direction === "outbound" ? "→ you sent" : "← received";
+                    const body = extractText(m.text);
+                    lines.push(`  ${dir}: ${body}`);
+                  }
+                  lines.push(
+                    "",
+                    `The interaction is now COMPLETE. Both participants received reputation credit.`,
+                  );
+                  runtime.system.enqueueSystemEvent(lines.join("\n"), {
+                    sessionKey: mainKey,
+                  });
+                } catch (err) {
+                  ctx.log?.warn?.(
+                    `[reef] inbound terminal summary failed: ${err}`,
+                  );
+                  runtime.system.enqueueSystemEvent(
+                    `[reef:app] interaction completed with ${msg.from}: ${text.replace("[app-action] ", "")}`,
+                    { sessionKey: mainKey },
+                  );
+                }
+              } else {
+                runtime.system.enqueueSystemEvent(
+                  `[reef:app] received from ${msg.from}: ${text.replace("[app-action] ", "")}`,
+                  { sessionKey: mainKey },
+                );
+              }
               notifier.push({
-                type: "app-action",
+                type: isTerminal ? "terminal" : "app-action",
                 peer: msg.from,
-                summary: text.replace("[app-action] ", ""),
+                summary: isTerminal
+                  ? "app interaction completed"
+                  : text.replace("[app-action] ", ""),
                 timestamp: Date.now(),
               });
             }

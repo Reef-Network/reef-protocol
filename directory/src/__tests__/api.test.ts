@@ -306,7 +306,7 @@ describe("POST /agents/heartbeat", () => {
     expect(res.status).toBe(404);
   });
 
-  it("accumulates task telemetry", async () => {
+  it("overwrites task telemetry with cumulative values", async () => {
     const payload = await signedHeartbeat({
       telemetry: { tasksCompleted: 5, tasksFailed: 1 },
     });
@@ -315,7 +315,7 @@ describe("POST /agents/heartbeat", () => {
 
     expect(res.status).toBe(200);
 
-    // Verify counters were accumulated
+    // Verify counters were overwritten (daemon sends cumulative totals)
     const profile = await request.get(`/agents/${testAddress}`);
     expect(profile.body.tasksCompleted).toBe(5);
     expect(profile.body.tasksFailed).toBe(1);

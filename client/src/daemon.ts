@@ -154,17 +154,11 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
   // Start heartbeat with dynamic telemetry
   const stopHeartbeat = startHeartbeat(DIRECTORY_URL, identity, {
     walletKey,
-    getTelemetry: () => {
-      // Return current counters and reset them (directory accumulates)
-      const snapshot = {
-        tasksCompleted: taskCounters.completed,
-        tasksFailed: taskCounters.failed,
-        country: agentConfig.country,
-      };
-      taskCounters.completed = 0;
-      taskCounters.failed = 0;
-      return snapshot;
-    },
+    getTelemetry: () => ({
+      tasksCompleted: taskCounters.completed,
+      tasksFailed: taskCounters.failed,
+      country: agentConfig.country,
+    }),
   });
 
   // Create task store and logic handler

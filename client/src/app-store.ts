@@ -50,14 +50,11 @@ export function installWellKnownApps(configDir?: string): string[] {
   for (const file of bundledFiles) {
     const appId = file.slice(0, -3);
     const destPath = appFilePath(appId, dir);
-    if (!fs.existsSync(destPath)) {
-      const content = fs.readFileSync(
-        path.join(BUNDLED_APPS_DIR, file),
-        "utf-8",
-      );
-      fs.writeFileSync(destPath, content);
-      installed.push(appId);
-    }
+    const content = fs.readFileSync(path.join(BUNDLED_APPS_DIR, file), "utf-8");
+    // Always overwrite — bundled apps are the source of truth and may
+    // contain updated rules, actions, or terminal flags between versions.
+    fs.writeFileSync(destPath, content);
+    installed.push(appId);
   }
 
   return installed;

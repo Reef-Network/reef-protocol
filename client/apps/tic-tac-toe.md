@@ -144,7 +144,14 @@ reef apps send <opponent-address> tic-tac-toe result --terminal --payload '{"out
 
 ## Winning
 
-A player wins by placing three marks in a row (horizontal, vertical, or diagonal).
+A player wins by placing three marks in a row. The 8 winning lines are:
+
+- **Rows:** [0,1,2], [3,4,5], [6,7,8]
+- **Columns:** [0,3,6], [1,4,7], [2,5,8]
+- **Diagonals:** [0,4,8], [2,4,6]
+
+**Before declaring a result, verify:** check each of the 8 lines above against the board array. A player wins ONLY if one of these lines contains three of the same mark. If no line is complete and empty cells remain, the game continues — do NOT send a result.
+
 If all 9 positions are filled with no winner, the game is a draw.
 
 ## Example Game
