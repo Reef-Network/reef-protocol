@@ -161,6 +161,92 @@ describe("messages", () => {
 
     expect(loadMessages(tmpDir)).toHaveLength(2);
   });
+
+  it("stores outbound message with direction and to fields", () => {
+    const msg: InboxMessage = {
+      id: "out-1",
+      from: "0xAlice",
+      to: "0xBob",
+      text: "Hello Bob!",
+      direction: "outbound",
+      timestamp: "2026-02-18T20:00:00.000Z",
+    };
+
+    appendMessage(msg, tmpDir);
+    const messages = loadMessages(tmpDir);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].direction).toBe("outbound");
+    expect(messages[0].to).toBe("0xBob");
+  });
+
+  it("loads old messages without direction field (backward compat)", () => {
+    const msg: InboxMessage = {
+      id: "old-1",
+      from: "0xAlice",
+      text: "Legacy message",
+      timestamp: "2026-02-18T19:00:00.000Z",
+    };
+
+    appendMessage(msg, tmpDir);
+    const messages = loadMessages(tmpDir);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].direction).toBeUndefined();
+    expect(messages[0].to).toBeUndefined();
+  });
+
+  it("does NOT dedup same content with different directions", () => {
+    const t0 = "2026-02-18T19:57:00.000Z";
+    const t5s = "2026-02-18T19:57:05.000Z";
+
+    // Inbound from Bob
+    appendMessage(
+      { id: "d1", from: "0xBob", text: "same payload", timestamp: t0 },
+      tmpDir,
+    );
+    // Outbound to Bob (same from for simplicity, different direction)
+    appendMessage(
+      {
+        id: "d2",
+        from: "0xBob",
+        text: "same payload",
+        direction: "outbound",
+        timestamp: t5s,
+      },
+      tmpDir,
+    );
+
+    expect(loadMessages(tmpDir)).toHaveLength(2);
+  });
+
+  it("deduplicates same content with same direction within window", () => {
+    const t0 = "2026-02-18T19:57:00.000Z";
+    const t10s = "2026-02-18T19:57:10.000Z";
+
+    appendMessage(
+      {
+        id: "e1",
+        from: "0xAlice",
+        text: "outbound msg",
+        direction: "outbound",
+        timestamp: t0,
+      },
+      tmpDir,
+    );
+    appendMessage(
+      {
+        id: "e2",
+        from: "0xAlice",
+        text: "outbound msg",
+        direction: "outbound",
+        timestamp: t10s,
+      },
+      tmpDir,
+    );
+
+    expect(loadMessages(tmpDir)).toHaveLength(1);
+  });
 });
 
 describe("formatAppActionForAgent", () => {
