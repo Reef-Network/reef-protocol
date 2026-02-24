@@ -306,20 +306,30 @@ describe("POST /agents/heartbeat", () => {
     expect(res.status).toBe(404);
   });
 
-  it("overwrites task telemetry with cumulative values", async () => {
-    const payload = await signedHeartbeat({
+  it("accumulates task telemetry from heartbeat deltas", async () => {
+    // First heartbeat with telemetry deltas
+    const payload1 = await signedHeartbeat({
       telemetry: { tasksCompleted: 5, tasksFailed: 1 },
     });
+    const res1 = await request.post("/agents/heartbeat").send(payload1);
+    expect(res1.status).toBe(200);
 
-    const res = await request.post("/agents/heartbeat").send(payload);
+    const profile1 = await request.get(`/agents/${testAddress}`);
+    expect(profile1.body.tasksCompleted).toBe(5);
+    expect(profile1.body.tasksFailed).toBe(1);
+    expect(profile1.body.totalInteractions).toBe(6);
 
-    expect(res.status).toBe(200);
+    // Second heartbeat adds more — counters should accumulate
+    const payload2 = await signedHeartbeat({
+      telemetry: { tasksCompleted: 3, tasksFailed: 2 },
+    });
+    const res2 = await request.post("/agents/heartbeat").send(payload2);
+    expect(res2.status).toBe(200);
 
-    // Verify counters were overwritten (daemon sends cumulative totals)
-    const profile = await request.get(`/agents/${testAddress}`);
-    expect(profile.body.tasksCompleted).toBe(5);
-    expect(profile.body.tasksFailed).toBe(1);
-    expect(profile.body.totalInteractions).toBe(6);
+    const profile2 = await request.get(`/agents/${testAddress}`);
+    expect(profile2.body.tasksCompleted).toBe(8);
+    expect(profile2.body.tasksFailed).toBe(3);
+    expect(profile2.body.totalInteractions).toBe(11);
   });
 
   it("rejects missing signature", async () => {
@@ -698,7 +708,11 @@ describe("app ownership", () => {
 });
 
 describe("heartbeat messagesSent telemetry", () => {
-  it("stores messagesSent from heartbeat telemetry", async () => {
+  it("accumulates messagesSent from heartbeat deltas", async () => {
+    const before = await request.get(`/agents/${testAddress}`);
+    const prevCompleted = before.body.tasksCompleted;
+    const prevFailed = before.body.tasksFailed;
+
     const payload = await signedHeartbeat({
       telemetry: { tasksCompleted: 5, tasksFailed: 1, messagesSent: 42 },
     });
@@ -707,8 +721,8 @@ describe("heartbeat messagesSent telemetry", () => {
     expect(res.status).toBe(200);
 
     const profile = await request.get(`/agents/${testAddress}`);
-    expect(profile.body.tasksCompleted).toBe(5);
-    expect(profile.body.tasksFailed).toBe(1);
+    expect(profile.body.tasksCompleted).toBe(prevCompleted + 5);
+    expect(profile.body.tasksFailed).toBe(prevFailed + 1);
   });
 });
 

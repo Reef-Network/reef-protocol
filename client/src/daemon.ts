@@ -155,7 +155,7 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
     process.exit(1);
   }
 
-  // Start heartbeat with dynamic telemetry
+  // Start heartbeat with dynamic telemetry (sends deltas, resets on success)
   const stopHeartbeat = startHeartbeat(DIRECTORY_URL, identity, {
     walletKey,
     getTelemetry: () => ({
@@ -165,6 +165,14 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
       appInteractions: { ...appInteractions },
       country: agentConfig.country,
     }),
+    onSuccess: () => {
+      taskCounters.completed = 0;
+      taskCounters.failed = 0;
+      messagesSent = 0;
+      for (const key of Object.keys(appInteractions)) {
+        delete appInteractions[key];
+      }
+    },
   });
 
   // Create task store and logic handler
