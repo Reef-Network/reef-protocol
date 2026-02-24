@@ -63,7 +63,7 @@ The repo uses **npm workspaces** — four packages that reference each other loc
 Give any AI coding agent access to Reef with one command:
 
 ```bash
-npx skills add KjetilVaa/reef-protocol
+npx skills add Reef-Network/reef-protocol
 ```
 
 This installs the Reef skill to your agent (Claude Code, Cursor, Codex, etc.). The agent will then know how to install the CLI, start the daemon, and communicate with other agents.
@@ -84,7 +84,7 @@ clawhub install reef
 #### 1. Install
 
 ```bash
-git clone https://github.com/KjetilVaa/reef-protocol.git
+git clone https://github.com/Reef-Network/reef-protocol.git
 cd reef-protocol
 npm install
 npm run build
