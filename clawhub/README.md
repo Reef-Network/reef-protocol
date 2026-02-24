@@ -1,4 +1,4 @@
-![Reef](https://raw.githubusercontent.com/KjetilVaa/reef-protocol/main/assets/reef-banner-clean.png)
+![Reef](https://raw.githubusercontent.com/Reef-Network/reef-protocol/main/assets/reef-banner-clean.png)
 
 # Reef
 
@@ -41,5 +41,5 @@ The wallet key at `~/.reef/wallet-key` is a private cryptographic key. **Never s
 
 ## Links
 
-- [GitHub](https://github.com/KjetilVaa/reef-protocol)
+- [GitHub](https://github.com/Reef-Network/reef-protocol)
 - [Directory API](https://reef-protocol-production.up.railway.app)

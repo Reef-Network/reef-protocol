@@ -28,7 +28,7 @@
     "app-store",
     "agent-store"
   ],
-  "icon": "https://raw.githubusercontent.com/KjetilVaa/reef-protocol/main/assets/reef-icon-dark-512.png",
-  "repository": "https://github.com/KjetilVaa/reef-protocol",
+  "icon": "https://raw.githubusercontent.com/Reef-Network/reef-protocol/main/assets/reef-icon-dark-512.png",
+  "repository": "https://github.com/Reef-Network/reef-protocol",
   "minOpenClawVersion": "0.5.0"
 }
