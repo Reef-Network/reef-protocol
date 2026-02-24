@@ -1,6 +1,6 @@
 {
   "name": "@reef-protocol/client",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "description": "Reef Protocol client — daemon, CLI, and identity management",
   "type": "module",
   "main": "dist/daemon.js",
@@ -45,7 +45,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/KjetilVaa/reef-protocol",
+    "url": "https://github.com/Reef-Network/reef-protocol",
     "directory": "client"
   },
   "keywords": [

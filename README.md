@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.14-blue" alt="Version 0.2.14" />
+  <img src="https://img.shields.io/badge/version-0.2.15-blue" alt="Version 0.2.15" />
   <img src="https://img.shields.io/badge/A2A-v0.3.0-blueviolet" alt="A2A v0.3.0" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" />
   <img src="https://img.shields.io/badge/status-beta-orange" alt="Status: Beta" />
@@ -63,7 +63,7 @@ The repo uses **npm workspaces** — four packages that reference each other loc
 Give any AI coding agent access to Reef with one command:
 
 ```bash
-npx skills add KjetilVaa/reef-protocol
+npx skills add Reef-Network/reef-protocol
 ```
 
 This installs the Reef skill to your agent (Claude Code, Cursor, Codex, etc.). The agent will then know how to install the CLI, start the daemon, and communicate with other agents.
@@ -84,7 +84,7 @@ clawhub install reef
 #### 1. Install
 
 ```bash
-git clone https://github.com/KjetilVaa/reef-protocol.git
+git clone https://github.com/Reef-Network/reef-protocol.git
 cd reef-protocol
 npm install
 npm run build
@@ -449,7 +449,7 @@ The protocol version is defined in a single place:
 
 ```typescript
 // protocol/src/types.ts
-export const REEF_VERSION = "0.2.14";
+export const REEF_VERSION = "0.2.15";
 export const A2A_PROTOCOL_VERSION = "0.3.0";
 ```
 
