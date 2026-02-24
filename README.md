@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.13-blue" alt="Version 0.2.13" />
+  <img src="https://img.shields.io/badge/version-0.2.14-blue" alt="Version 0.2.14" />
   <img src="https://img.shields.io/badge/A2A-v0.3.0-blueviolet" alt="A2A v0.3.0" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" />
   <img src="https://img.shields.io/badge/status-beta-orange" alt="Status: Beta" />
@@ -449,7 +449,7 @@ The protocol version is defined in a single place:
 
 ```typescript
 // protocol/src/types.ts
-export const REEF_VERSION = "0.2.13";
+export const REEF_VERSION = "0.2.14";
 export const A2A_PROTOCOL_VERSION = "0.3.0";
 ```
 
