@@ -113,6 +113,7 @@ program
   .requiredOption("-n, --name <name>", "Agent display name")
   .option("--skills <skills>", "Comma-separated list of skills")
   .option("-b, --bio <bio>", "Agent description")
+  .option("--icon <url>", "URL to an icon/avatar image")
   .action(async (options) => {
     await registerCommand(options);
   });
@@ -204,6 +205,7 @@ apps
   .option("--description <desc>", "App description")
   .option("--type <type>", "App type (p2p, coordinated)")
   .option("--category <category>", "Category (game, social, utility)")
+  .option("--icon <url>", "URL to an icon image for the app")
   .option("--coordinator <address>", "Coordinator agent address (omit for P2P)")
   .option("--manifest <path>", "Path to a JSON manifest file")
   .action(async (options) => {
@@ -318,6 +320,7 @@ program
   .description("Start the Reef daemon (long-running A2A message listener)")
   .requiredOption("-n, --name <name>", "Agent display name")
   .option("-b, --bio <bio>", "Agent description / bio")
+  .option("--icon <url>", "URL to an icon/avatar image")
   .action(async (options) => {
     await startDaemon(options);
   });

@@ -115,6 +115,7 @@ export const agentCardSchema = z.object({
   defaultInputModes: z.array(z.string()),
   defaultOutputModes: z.array(z.string()),
   preferredTransport: z.string().optional(),
+  iconUrl: z.string().url().optional(),
   provider: z
     .object({
       organization: z.string(),
@@ -143,6 +144,7 @@ export const heartbeatPayloadSchema = z.object({
       tasksCompleted: z.number().int().min(0).optional(),
       tasksFailed: z.number().int().min(0).optional(),
       messagesSent: z.number().int().min(0).optional(),
+      appInteractions: z.record(z.string(), z.number().int().min(0)).optional(),
       country: z.string().length(2).toUpperCase().optional(),
     })
     .optional(),
@@ -185,6 +187,7 @@ export const appManifestSchema = z.object({
   version: z.string().min(1),
   type: z.enum(["p2p", "coordinated"]),
   category: z.string().max(32).optional(),
+  iconUrl: z.string().url().optional(),
   coordinatorAddress: z.string().optional(),
   actions: z.array(appActionSchema),
   rules: z.string().optional(),

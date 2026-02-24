@@ -54,6 +54,8 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
     const name = agentCard.name;
     const description = agentCard.description || null;
     const skillTags = agentCard.skills.flatMap((s) => s.tags);
+    const iconUrl = (agentCard as unknown as Record<string, unknown>)
+      .iconUrl as string | undefined;
 
     let agent = await Agent.findByPk(addr);
 
@@ -67,6 +69,7 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         availability: "online",
         last_heartbeat: new Date(),
         agent_card: agentCard,
+        icon_url: iconUrl || agent.icon_url,
       });
     } else {
       agent = await Agent.create({
@@ -84,7 +87,9 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         tasks_failed: 0,
         total_interactions: 0,
         messages_sent: 0,
+        app_interactions: {},
         reputation_updated_at: null,
+        icon_url: iconUrl || null,
       });
     }
 
@@ -146,6 +151,7 @@ agentsRouter.get("/search", searchLimiter, async (req, res, next) => {
         skills: a.skills,
         availability: a.availability,
         agentCard: a.agent_card,
+        iconUrl: a.icon_url ?? null,
         registeredAt: a.created_at?.toISOString(),
         lastHeartbeat: a.last_heartbeat?.toISOString(),
         reputationScore: a.reputation_score,
@@ -200,12 +206,17 @@ agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
       return;
     }
 
-    // Overwrite task telemetry with cumulative values from the daemon.
-    // The daemon tracks lifetime totals and sends them with each heartbeat.
+    // Increment counters with deltas from the daemon.
+    // The daemon resets its counters after each successful heartbeat,
+    // so reported values are deltas since the last successful beat.
     const telemetry = body.telemetry;
-    const tasksCompleted = Math.max(0, telemetry?.tasksCompleted ?? 0);
-    const tasksFailed = Math.max(0, telemetry?.tasksFailed ?? 0);
-    const messagesSent = Math.max(0, telemetry?.messagesSent ?? 0);
+    const deltaCompleted = Math.max(0, telemetry?.tasksCompleted ?? 0);
+    const deltaFailed = Math.max(0, telemetry?.tasksFailed ?? 0);
+    const deltaMessages = Math.max(0, telemetry?.messagesSent ?? 0);
+
+    const newTasksCompleted = (agent.tasks_completed ?? 0) + deltaCompleted;
+    const newTasksFailed = (agent.tasks_failed ?? 0) + deltaFailed;
+    const newMessagesSent = (agent.messages_sent ?? 0) + deltaMessages;
 
     // Update heartbeat and recompute reputation
     const now = new Date();
@@ -213,23 +224,45 @@ agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
     const updatedFields: Record<string, unknown> = {
       last_heartbeat: now,
       availability: "online",
-      tasks_completed: tasksCompleted,
-      tasks_failed: tasksFailed,
-      total_interactions: tasksCompleted + tasksFailed,
-      messages_sent: messagesSent,
+      tasks_completed: newTasksCompleted,
+      tasks_failed: newTasksFailed,
+      total_interactions: newTasksCompleted + newTasksFailed,
+      messages_sent: newMessagesSent,
     };
+
+    // Increment per-app interaction counts (daemon sends deltas)
+    const newAppInteractions = telemetry?.appInteractions;
+    if (newAppInteractions && typeof newAppInteractions === "object") {
+      for (const [appId, delta] of Object.entries(newAppInteractions)) {
+        if (delta > 0) {
+          await App.increment("total_interactions", {
+            by: delta,
+            where: { app_id: appId },
+          });
+        }
+      }
+
+      // Accumulate per-agent app interaction totals
+      const oldAppInteractions =
+        (agent.app_interactions as Record<string, number>) || {};
+      const merged = { ...oldAppInteractions };
+      for (const [appId, delta] of Object.entries(newAppInteractions)) {
+        merged[appId] = (merged[appId] || 0) + delta;
+      }
+      updatedFields.app_interactions = merged;
+    }
 
     // Update country if provided
     if (telemetry?.country) {
       updatedFields.country = telemetry.country;
     }
 
-    // Compute reputation with the new values
+    // Compute reputation with the accumulated values
     const inputForScore = toReputationInput({
       ...agent.get({ plain: true }),
-      tasks_completed: tasksCompleted,
-      tasks_failed: tasksFailed,
-      total_interactions: tasksCompleted + tasksFailed,
+      tasks_completed: newTasksCompleted,
+      tasks_failed: newTasksFailed,
+      total_interactions: newTasksCompleted + newTasksFailed,
       created_at: agent.created_at ?? now,
     } as Agent);
 
@@ -247,16 +280,16 @@ agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
       const appFields: Record<string, unknown> = {
         availability: "available",
         last_refreshed: now,
-        tasks_completed: tasksCompleted,
-        tasks_failed: tasksFailed,
-        total_interactions: tasksCompleted + tasksFailed,
+        tasks_completed: newTasksCompleted,
+        tasks_failed: newTasksFailed,
+        total_interactions: newTasksCompleted + newTasksFailed,
       };
 
       const appInput = toAppReputationInput({
         ...coordApp.get({ plain: true }),
-        tasks_completed: tasksCompleted,
-        tasks_failed: tasksFailed,
-        total_interactions: tasksCompleted + tasksFailed,
+        tasks_completed: newTasksCompleted,
+        tasks_failed: newTasksFailed,
+        total_interactions: newTasksCompleted + newTasksFailed,
         created_at: coordApp.created_at ?? now,
       } as App);
 

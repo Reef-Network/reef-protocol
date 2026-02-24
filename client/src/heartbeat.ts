@@ -11,6 +11,7 @@ export interface TelemetryData {
   tasksCompleted?: number;
   tasksFailed?: number;
   messagesSent?: number;
+  appInteractions?: Record<string, number>;
   country?: string;
 }
 
@@ -22,6 +23,8 @@ export interface HeartbeatOptions {
   telemetry?: TelemetryData;
   /** Dynamic telemetry callback — called every 4th beat to get current counters. */
   getTelemetry?: () => TelemetryData;
+  /** Called after a successful heartbeat — use to reset telemetry counters. */
+  onSuccess?: () => void;
 }
 
 /** Build the message string that is signed for heartbeat auth. */
@@ -83,6 +86,7 @@ export function startHeartbeat(
           `[heartbeat] OK — ${data.stats.onlineAgents}/${data.stats.totalAgents} agents online`,
         );
       }
+      options?.onSuccess?.();
     } catch (err) {
       console.error("[heartbeat] Error:", (err as Error).message);
     }

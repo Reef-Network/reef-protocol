@@ -306,20 +306,30 @@ describe("POST /agents/heartbeat", () => {
     expect(res.status).toBe(404);
   });
 
-  it("overwrites task telemetry with cumulative values", async () => {
-    const payload = await signedHeartbeat({
+  it("accumulates task telemetry from heartbeat deltas", async () => {
+    // First heartbeat with telemetry deltas
+    const payload1 = await signedHeartbeat({
       telemetry: { tasksCompleted: 5, tasksFailed: 1 },
     });
+    const res1 = await request.post("/agents/heartbeat").send(payload1);
+    expect(res1.status).toBe(200);
 
-    const res = await request.post("/agents/heartbeat").send(payload);
+    const profile1 = await request.get(`/agents/${testAddress}`);
+    expect(profile1.body.tasksCompleted).toBe(5);
+    expect(profile1.body.tasksFailed).toBe(1);
+    expect(profile1.body.totalInteractions).toBe(6);
 
-    expect(res.status).toBe(200);
+    // Second heartbeat adds more — counters should accumulate
+    const payload2 = await signedHeartbeat({
+      telemetry: { tasksCompleted: 3, tasksFailed: 2 },
+    });
+    const res2 = await request.post("/agents/heartbeat").send(payload2);
+    expect(res2.status).toBe(200);
 
-    // Verify counters were overwritten (daemon sends cumulative totals)
-    const profile = await request.get(`/agents/${testAddress}`);
-    expect(profile.body.tasksCompleted).toBe(5);
-    expect(profile.body.tasksFailed).toBe(1);
-    expect(profile.body.totalInteractions).toBe(6);
+    const profile2 = await request.get(`/agents/${testAddress}`);
+    expect(profile2.body.tasksCompleted).toBe(8);
+    expect(profile2.body.tasksFailed).toBe(3);
+    expect(profile2.body.totalInteractions).toBe(11);
   });
 
   it("rejects missing signature", async () => {
@@ -698,7 +708,11 @@ describe("app ownership", () => {
 });
 
 describe("heartbeat messagesSent telemetry", () => {
-  it("stores messagesSent from heartbeat telemetry", async () => {
+  it("accumulates messagesSent from heartbeat deltas", async () => {
+    const before = await request.get(`/agents/${testAddress}`);
+    const prevCompleted = before.body.tasksCompleted;
+    const prevFailed = before.body.tasksFailed;
+
     const payload = await signedHeartbeat({
       telemetry: { tasksCompleted: 5, tasksFailed: 1, messagesSent: 42 },
     });
@@ -707,8 +721,8 @@ describe("heartbeat messagesSent telemetry", () => {
     expect(res.status).toBe(200);
 
     const profile = await request.get(`/agents/${testAddress}`);
-    expect(profile.body.tasksCompleted).toBe(5);
-    expect(profile.body.tasksFailed).toBe(1);
+    expect(profile.body.tasksCompleted).toBe(prevCompleted + 5);
+    expect(profile.body.tasksFailed).toBe(prevFailed + 1);
   });
 });
 
@@ -807,5 +821,86 @@ describe("GET /apps/search?sortBy=interactions", () => {
 
     // high-interact-app should be first since it has 55 interactions
     expect(res.body.apps[0].appId).toBe("high-interact-app");
+  });
+});
+
+describe("iconUrl support", () => {
+  it("stores iconUrl from agentCard on registration", async () => {
+    const card = makeAgentCard({
+      name: "Icon Agent",
+      iconUrl: "https://example.com/agent-icon.png",
+    });
+    const res = await request.post("/agents/register").send({
+      address: "0xIconAgent001",
+      agentCard: card,
+    });
+    expect(res.status).toBe(200);
+
+    const search = await request.get("/agents/search?q=Icon%20Agent");
+    expect(search.status).toBe(200);
+    const agent = search.body.agents.find(
+      (a: { address: string }) => a.address === "0xiconagent001",
+    );
+    expect(agent).toBeDefined();
+    expect(agent.iconUrl).toBe("https://example.com/agent-icon.png");
+  });
+
+  it("returns null iconUrl when not provided", async () => {
+    // The original test agent was registered without iconUrl
+    const search = await request.get("/agents/search?q=Test%20Agent");
+    expect(search.status).toBe(200);
+    const agentWithoutIcon = search.body.agents.find(
+      (a: { iconUrl: string | null }) => a.iconUrl === null,
+    );
+    expect(agentWithoutIcon).toBeDefined();
+    expect(agentWithoutIcon.iconUrl).toBeNull();
+  });
+
+  it("stores iconUrl from app manifest on registration", async () => {
+    const iconAppKey = generatePrivateKey();
+    const iconAppAccount = privateKeyToAccount(iconAppKey);
+    const iconAppAddr = iconAppAccount.address;
+
+    // Register agent first
+    await request.post("/agents/register").send({
+      address: iconAppAddr,
+      agentCard: makeAgentCard({ name: "Icon App Owner" }),
+    });
+
+    const res = await request.post("/apps/register").send({
+      address: iconAppAddr,
+      appId: "icon-test-app",
+      manifest: {
+        appId: "icon-test-app",
+        name: "Icon Test App",
+        description: "An app with an icon",
+        version: "1.0.0",
+        type: "p2p",
+        iconUrl: "https://example.com/app-icon.png",
+        actions: [{ id: "play", name: "Play", description: "Start playing" }],
+        minParticipants: 2,
+      },
+    });
+    expect(res.status).toBe(200);
+
+    const search = await request.get("/apps/search?q=Icon%20Test");
+    expect(search.status).toBe(200);
+    const app = search.body.apps.find(
+      (a: { appId: string }) => a.appId === "icon-test-app",
+    );
+    expect(app).toBeDefined();
+    expect(app.iconUrl).toBe("https://example.com/app-icon.png");
+  });
+
+  it("returns null iconUrl for apps without icon", async () => {
+    const search = await request.get("/apps/search");
+    expect(search.status).toBe(200);
+    // Find an app that was registered without iconUrl
+    const appWithoutIcon = search.body.apps.find(
+      (a: { appId: string }) => a.appId !== "icon-test-app",
+    );
+    if (appWithoutIcon) {
+      expect(appWithoutIcon.iconUrl).toBeNull();
+    }
   });
 });
