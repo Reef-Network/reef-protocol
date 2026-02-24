@@ -34,6 +34,7 @@ const DIRECTORY_URL = process.env.REEF_DIRECTORY_URL || DEFAULT_DIRECTORY_URL;
 export interface DaemonOptions {
   name?: string;
   bio?: string;
+  icon?: string;
 }
 
 /**
@@ -95,6 +96,7 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
     agentName,
     agentDescription,
     skills,
+    opts?.icon ? { iconUrl: opts.icon } : undefined,
   );
 
   // Register with directory
@@ -123,6 +125,7 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
   // Task outcome counters for reputation telemetry
   const taskCounters = { completed: 0, failed: 0 };
   let messagesSent = 0;
+  const appInteractions: Record<string, number> = {};
 
   const onTaskOutcome = (state: TaskState) => {
     if (state === "completed") {
@@ -152,15 +155,24 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
     process.exit(1);
   }
 
-  // Start heartbeat with dynamic telemetry
+  // Start heartbeat with dynamic telemetry (sends deltas, resets on success)
   const stopHeartbeat = startHeartbeat(DIRECTORY_URL, identity, {
     walletKey,
     getTelemetry: () => ({
       tasksCompleted: taskCounters.completed,
       tasksFailed: taskCounters.failed,
       messagesSent,
+      appInteractions: { ...appInteractions },
       country: agentConfig.country,
     }),
+    onSuccess: () => {
+      taskCounters.completed = 0;
+      taskCounters.failed = 0;
+      messagesSent = 0;
+      for (const key of Object.keys(appInteractions)) {
+        delete appInteractions[key];
+      }
+    },
   });
 
   // Create task store and logic handler
@@ -319,7 +331,7 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
             configDir,
           );
 
-          // Count terminal app-actions as completed tasks for reputation
+          // Count app actions for telemetry + terminal actions for reputation
           if (outboundDecoded && isA2ARequest(outboundDecoded)) {
             const params = outboundDecoded.params as {
               message?: { parts?: Array<Record<string, unknown>> };
@@ -329,8 +341,12 @@ export async function startDaemon(opts?: DaemonOptions): Promise<void> {
               for (const p of parts) {
                 if (p.kind === "data") {
                   const appAction = extractAppAction(p as unknown as DataPart);
-                  if (appAction?.terminal) {
-                    onTaskOutcome("completed");
+                  if (appAction) {
+                    appInteractions[appAction.appId] =
+                      (appInteractions[appAction.appId] || 0) + 1;
+                    if (appAction.terminal) {
+                      onTaskOutcome("completed");
+                    }
                   }
                 }
               }

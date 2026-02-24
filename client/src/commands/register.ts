@@ -7,6 +7,7 @@ interface RegisterOptions {
   name: string;
   bio?: string;
   skills?: string;
+  icon?: string;
 }
 
 export async function registerCommand(options: RegisterOptions): Promise<void> {
@@ -29,6 +30,7 @@ export async function registerCommand(options: RegisterOptions): Promise<void> {
     name,
     description,
     skills,
+    options.icon ? { iconUrl: options.icon } : undefined,
   );
 
   const body = {

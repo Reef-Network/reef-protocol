@@ -27,6 +27,7 @@ interface RegisterOptions {
   name: string;
   description?: string;
   category?: string;
+  icon?: string;
   type?: string;
   coordinator?: string;
   manifest?: string;
@@ -57,6 +58,7 @@ export async function appsRegisterCommand(
       {
         type: (options.type as "p2p" | "coordinated") || undefined,
         category: options.category,
+        iconUrl: options.icon,
         coordinatorAddress: options.coordinator,
       },
     );

@@ -84,8 +84,9 @@ export function buildReefAgentCard(
   name: string,
   description: string,
   skills: AgentSkill[],
+  options?: { iconUrl?: string },
 ): AgentCard {
-  return {
+  const card: AgentCard = {
     name,
     description,
     url: `xmtp://${address}`,
@@ -101,6 +102,10 @@ export function buildReefAgentCard(
     defaultOutputModes: ["text/plain"],
     preferredTransport: "XMTP",
   };
+  if (options?.iconUrl) {
+    (card as unknown as Record<string, unknown>).iconUrl = options.iconUrl;
+  }
+  return card;
 }
 
 /** Build an AgentSkill */
@@ -144,6 +149,7 @@ export function buildAppManifest(
     version?: string;
     type?: "p2p" | "coordinated";
     category?: string;
+    iconUrl?: string;
     coordinatorAddress?: string;
     rules?: string;
     stateSchema?: Record<string, unknown>;
@@ -158,6 +164,7 @@ export function buildAppManifest(
     version: options?.version ?? REEF_VERSION,
     type: options?.type ?? "p2p",
     category: options?.category,
+    iconUrl: options?.iconUrl,
     coordinatorAddress: options?.coordinatorAddress,
     actions,
     rules: options?.rules,

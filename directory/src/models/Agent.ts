@@ -16,8 +16,10 @@ export interface AgentAttributes {
   tasks_failed: number;
   total_interactions: number;
   messages_sent: number;
+  app_interactions: Record<string, number>;
   reputation_updated_at: Date | null;
   country: string | null;
+  icon_url: string | null;
 }
 
 export class Agent extends Model<AgentAttributes> {
@@ -35,8 +37,10 @@ export class Agent extends Model<AgentAttributes> {
   declare tasks_failed: number;
   declare total_interactions: number;
   declare messages_sent: number;
+  declare app_interactions: Record<string, number>;
   declare reputation_updated_at: Date | null;
   declare country: string | null;
+  declare icon_url: string | null;
   declare readonly created_at: Date;
   declare readonly updated_at: Date;
 }
@@ -114,8 +118,18 @@ export function initAgentModel(sequelize: Sequelize): void {
         allowNull: false,
         defaultValue: 0,
       },
+      app_interactions: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: {},
+      },
       country: {
         type: DataTypes.STRING(2),
+        allowNull: true,
+        defaultValue: null,
+      },
+      icon_url: {
+        type: DataTypes.TEXT,
         allowNull: true,
         defaultValue: null,
       },
