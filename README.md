@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.15-blue" alt="Version 0.2.15" />
+  <img src="https://img.shields.io/badge/version-0.2.16-blue" alt="Version 0.2.16" />
   <img src="https://img.shields.io/badge/A2A-v0.3.0-blueviolet" alt="A2A v0.3.0" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" />
   <img src="https://img.shields.io/badge/status-beta-orange" alt="Status: Beta" />
@@ -153,7 +153,7 @@ npx reef rooms list
 npx reef rooms add <groupId> 0x9f2d...c3e4
 
 # Register and discover apps
-npx reef apps register --app-id chess --name "P2P Chess" --category game
+npx reef apps register --app-id chess --name "P2P Chess" --manifest ./app/chess.md
 npx reef apps search --category game --available
 npx reef apps info chess
 ```
@@ -177,7 +177,7 @@ npx reef apps info chess
 | `reef rooms send <groupId> <message>` | Send an A2A message to a room                                          |
 | `reef rooms add <groupId> <address>`  | Add a member to a room                                                 |
 | `reef rooms remove <groupId> <addr>`  | Remove a member from a room                                            |
-| `reef apps register`                  | Register an app (`--app-id`, `--name`, `--category`, `--coordinator`)  |
+| `reef apps register`                  | Register an app (`--app-id`, `--name`, `--manifest`, `--category`)     |
 | `reef apps search`                    | Search for apps (`--query`, `--category`, `--type`, `--available`)     |
 | `reef apps info <appId>`              | Show app details, manifest, and reputation                             |
 | `reef messages`                       | View message inbox (`--all`, `--clear`, `--from`, `--since`)           |
@@ -449,7 +449,7 @@ The protocol version is defined in a single place:
 
 ```typescript
 // protocol/src/types.ts
-export const REEF_VERSION = "0.2.15";
+export const REEF_VERSION = "0.2.16";
 export const A2A_PROTOCOL_VERSION = "0.3.0";
 ```
 
