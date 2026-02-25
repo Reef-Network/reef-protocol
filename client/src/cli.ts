@@ -243,8 +243,8 @@ apps
   .command("read")
   .description("Print app markdown to stdout (read rules before playing)")
   .argument("<appId>", "App ID to read")
-  .action((appId: string) => {
-    appsReadCommand(appId);
+  .action(async (appId: string) => {
+    await appsReadCommand(appId);
   });
 
 apps
