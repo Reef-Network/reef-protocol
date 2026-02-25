@@ -37,9 +37,11 @@ appsRouter.post("/register", registrationLimiter, async (req, res, next) => {
     const body = appRegisterPayloadSchema.parse(req.body);
     const addr = body.address.toLowerCase();
     const manifest = body.manifest;
-    const coordinatorAddr = manifest.coordinatorAddress?.toLowerCase() || null;
-
-    const isCoordinated = !!manifest.coordinatorAddress;
+    const isCoordinated =
+      manifest.type === "coordinated" || !!manifest.coordinatorAddress;
+    const coordinatorAddr = isCoordinated
+      ? manifest.coordinatorAddress?.toLowerCase() || addr
+      : null;
 
     let app = await App.findByPk(body.appId);
 

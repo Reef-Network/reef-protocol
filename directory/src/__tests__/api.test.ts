@@ -649,7 +649,8 @@ describe("heartbeat piggybacking for coordinated apps", () => {
     expect(appRes.status).toBe(200);
     expect(appRes.body.availability).toBe("available");
     expect(appRes.body.tasksCompleted).toBe(3);
-    expect(appRes.body.totalInteractions).toBe(3);
+    // totalInteractions is tracked independently via appInteractions, not piggybacked
+    expect(appRes.body.totalInteractions).toBe(0);
   });
 
   it("does not piggyback on unrelated agent heartbeat", async () => {
@@ -807,11 +808,15 @@ describe("GET /apps/search?sortBy=interactions", () => {
       }),
     });
 
-    // Send heartbeat with high interaction count
+    // Send heartbeat with appInteractions to increment the app's total_interactions
     const payload = await signedHeartbeat({
       address: highAddr,
       _account: highInteractionAccount,
-      telemetry: { tasksCompleted: 50, tasksFailed: 5 },
+      telemetry: {
+        tasksCompleted: 50,
+        tasksFailed: 5,
+        appInteractions: { "high-interact-app": 55 },
+      },
     });
     await request.post("/agents/heartbeat").send(payload);
 
@@ -819,7 +824,7 @@ describe("GET /apps/search?sortBy=interactions", () => {
     expect(res.status).toBe(200);
     expect(res.body.apps.length).toBeGreaterThan(0);
 
-    // high-interact-app should be first since it has 55 interactions
+    // high-interact-app should be first since it has 55 interactions via appInteractions
     expect(res.body.apps[0].appId).toBe("high-interact-app");
   });
 });
