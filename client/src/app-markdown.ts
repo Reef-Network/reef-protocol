@@ -157,6 +157,11 @@ function parseFrontmatter(text: string): FrontmatterMap {
       const items: FrontmatterMap[] = [];
       i++;
       while (i < lines.length) {
+        // Skip blank lines between array items
+        if (!lines[i].trim()) {
+          i++;
+          continue;
+        }
         const itemLine = lines[i];
         if (!itemLine.match(/^\s+-\s/)) break;
 
@@ -176,8 +181,7 @@ function parseFrontmatter(text: string): FrontmatterMap {
           const contLine = lines[i];
           if (
             contLine.match(/^\s+-\s/) || // next array item
-            !contLine.match(/^\s/) || // back to top-level
-            !contLine.trim()
+            !contLine.match(/^\s/) // back to top-level
           ) {
             break;
           }
