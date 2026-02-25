@@ -1,4 +1,5 @@
 import * as fs from "node:fs";
+import type { AppManifest } from "@reef-protocol/protocol";
 import {
   buildAppManifest,
   buildAppAction,
@@ -10,7 +11,7 @@ import {
   appManifestSchema,
 } from "@reef-protocol/protocol";
 import { getOrCreateIdentity, getConfigDir } from "../identity.js";
-import { parseAppMarkdown } from "../app-markdown.js";
+import { parseAppMarkdown, serializeAppMarkdown } from "../app-markdown.js";
 import {
   listInstalledApps,
   loadInstalledApp,
@@ -39,9 +40,15 @@ export async function appsRegisterCommand(
   let manifest;
 
   if (options.manifest) {
-    // Load manifest from JSON file
     const raw = fs.readFileSync(options.manifest, "utf-8");
-    manifest = JSON.parse(raw);
+    if (options.manifest.endsWith(".md")) {
+      // Parse manifest from app markdown file
+      const parsed = parseAppMarkdown(raw);
+      manifest = parsed;
+    } else {
+      // Load manifest from JSON file
+      manifest = JSON.parse(raw);
+    }
   } else {
     // Build manifest from CLI options
     const defaultAction = buildAppAction(
@@ -122,16 +129,44 @@ export function appsListCommand(): void {
   }
 }
 
-/** Print raw markdown for an app (for agents to read rules) */
-export function appsReadCommand(appId: string): void {
-  const raw = readAppMarkdown(appId, getConfigDir());
-  if (!raw) {
-    console.error(`App not found: ${appId}`);
-    console.error(`Run \`reef apps list\` to see installed apps.`);
-    process.exitCode = 1;
+/** Print raw markdown for an app (for agents to read rules).
+ *  Falls back to fetching from the directory if not installed locally. */
+export async function appsReadCommand(appId: string): Promise<void> {
+  const configDir = getConfigDir();
+  const raw = readAppMarkdown(appId, configDir);
+  if (raw) {
+    console.log(raw);
     return;
   }
-  console.log(raw);
+
+  // Fallback: fetch from directory API
+  try {
+    const res = await fetch(`${DIRECTORY_URL}/apps/${appId}`);
+    if (!res.ok) {
+      console.error(`App not found locally or in directory: ${appId}`);
+      console.error(`Run \`reef apps list\` to see installed apps.`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const data = (await res.json()) as { manifest?: AppManifest };
+    if (!data.manifest) {
+      console.error(`App "${appId}" found in directory but has no manifest.`);
+      process.exitCode = 1;
+      return;
+    }
+
+    // Validate and save locally
+    const manifest = appManifestSchema.parse(data.manifest);
+    saveApp(manifest, configDir);
+    const markdown = serializeAppMarkdown(manifest);
+    console.log(markdown);
+  } catch (err) {
+    console.error(
+      `Failed to fetch app from directory: ${(err as Error).message}`,
+    );
+    process.exitCode = 1;
+  }
 }
 
 interface CreateOptions {
