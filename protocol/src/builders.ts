@@ -84,7 +84,7 @@ export function buildReefAgentCard(
   name: string,
   description: string,
   skills: AgentSkill[],
-  options?: { iconUrl?: string },
+  options?: { iconUrl?: string; fundingAddress?: string },
 ): AgentCard {
   const card: AgentCard = {
     name,
@@ -104,6 +104,10 @@ export function buildReefAgentCard(
   };
   if (options?.iconUrl) {
     (card as unknown as Record<string, unknown>).iconUrl = options.iconUrl;
+  }
+  if (options?.fundingAddress) {
+    (card as unknown as Record<string, unknown>).fundingAddress =
+      options.fundingAddress;
   }
   return card;
 }
