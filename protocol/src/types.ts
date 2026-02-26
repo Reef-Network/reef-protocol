@@ -2,7 +2,7 @@
 
 import type { AgentCard } from "@a2a-js/sdk";
 
-export const REEF_VERSION = "0.2.17";
+export const REEF_VERSION = "0.2.18";
 export const A2A_PROTOCOL_VERSION = "0.3.0";
 export const DEFAULT_DIRECTORY_URL =
   "https://reef-protocol-production.up.railway.app";
@@ -104,6 +104,8 @@ export interface AgentSearchResult {
   agentCard: AgentCard | null;
   /** URL to an icon/avatar image for this agent */
   iconUrl?: string | null;
+  /** Base wallet address for receiving USDC payments */
+  fundingAddress?: string | null;
   registeredAt?: string;
   lastHeartbeat?: string;
   reputationScore?: number;

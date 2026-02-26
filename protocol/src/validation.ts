@@ -116,6 +116,7 @@ export const agentCardSchema = z.object({
   defaultOutputModes: z.array(z.string()),
   preferredTransport: z.string().optional(),
   iconUrl: z.string().url().optional(),
+  fundingAddress: z.string().optional(),
   provider: z
     .object({
       organization: z.string(),

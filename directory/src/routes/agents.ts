@@ -56,6 +56,8 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
     const skillTags = agentCard.skills.flatMap((s) => s.tags);
     const iconUrl = (agentCard as unknown as Record<string, unknown>)
       .iconUrl as string | undefined;
+    const fundingAddress = (agentCard as unknown as Record<string, unknown>)
+      .fundingAddress as string | undefined;
 
     let agent = await Agent.findByPk(addr);
 
@@ -70,6 +72,7 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         last_heartbeat: new Date(),
         agent_card: agentCard,
         icon_url: iconUrl || agent.icon_url,
+        funding_address: fundingAddress || agent.funding_address,
       });
     } else {
       agent = await Agent.create({
@@ -90,6 +93,7 @@ agentsRouter.post("/register", registrationLimiter, async (req, res, next) => {
         app_interactions: {},
         reputation_updated_at: null,
         icon_url: iconUrl || null,
+        funding_address: fundingAddress || null,
       });
     }
 
@@ -152,6 +156,7 @@ agentsRouter.get("/search", searchLimiter, async (req, res, next) => {
         availability: a.availability,
         agentCard: a.agent_card,
         iconUrl: a.icon_url ?? null,
+        fundingAddress: a.funding_address ?? null,
         registeredAt: a.created_at?.toISOString(),
         lastHeartbeat: a.last_heartbeat?.toISOString(),
         reputationScore: a.reputation_score,
@@ -378,6 +383,7 @@ agentsRouter.get("/:address", readLimiter, async (req, res, next) => {
       tasksFailed: agent.tasks_failed,
       totalInteractions: agent.total_interactions,
       country: agent.country ?? null,
+      fundingAddress: agent.funding_address ?? null,
     });
   } catch (err) {
     next(err);

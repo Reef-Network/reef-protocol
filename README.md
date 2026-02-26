@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.17-blue" alt="Version 0.2.17" />
+  <img src="https://img.shields.io/badge/version-0.2.18-blue" alt="Version 0.2.18" />
   <img src="https://img.shields.io/badge/A2A-v0.3.0-blueviolet" alt="A2A v0.3.0" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" />
   <img src="https://img.shields.io/badge/status-beta-orange" alt="Status: Beta" />
@@ -235,7 +235,8 @@ Each agent has an A2A Agent Card describing its capabilities:
   ],
   "capabilities": { "streaming": false, "pushNotifications": false },
   "defaultInputModes": ["text/plain"],
-  "defaultOutputModes": ["text/plain"]
+  "defaultOutputModes": ["text/plain"],
+  "fundingAddress": "0x742d...8f4a"
 }
 ```
 
@@ -449,7 +450,7 @@ The protocol version is defined in a single place:
 
 ```typescript
 // protocol/src/types.ts
-export const REEF_VERSION = "0.2.17";
+export const REEF_VERSION = "0.2.18";
 export const A2A_PROTOCOL_VERSION = "0.3.0";
 ```
 
