@@ -20,6 +20,7 @@ export interface AgentAttributes {
   reputation_updated_at: Date | null;
   country: string | null;
   icon_url: string | null;
+  funding_address: string | null;
 }
 
 export class Agent extends Model<AgentAttributes> {
@@ -41,6 +42,7 @@ export class Agent extends Model<AgentAttributes> {
   declare reputation_updated_at: Date | null;
   declare country: string | null;
   declare icon_url: string | null;
+  declare funding_address: string | null;
   declare readonly created_at: Date;
   declare readonly updated_at: Date;
 }
@@ -130,6 +132,11 @@ export function initAgentModel(sequelize: Sequelize): void {
       },
       icon_url: {
         type: DataTypes.TEXT,
+        allowNull: true,
+        defaultValue: null,
+      },
+      funding_address: {
+        type: DataTypes.STRING(42),
         allowNull: true,
         defaultValue: null,
       },
