@@ -282,14 +282,12 @@ agentsRouter.post("/heartbeat", heartbeatLimiter, async (req, res, next) => {
         last_refreshed: now,
         tasks_completed: newTasksCompleted,
         tasks_failed: newTasksFailed,
-        total_interactions: newTasksCompleted + newTasksFailed,
       };
 
       const appInput = toAppReputationInput({
         ...coordApp.get({ plain: true }),
         tasks_completed: newTasksCompleted,
         tasks_failed: newTasksFailed,
-        total_interactions: newTasksCompleted + newTasksFailed,
         created_at: coordApp.created_at ?? now,
       } as App);
 
